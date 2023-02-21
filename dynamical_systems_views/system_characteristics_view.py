@@ -147,6 +147,11 @@ class SystemCharacteristicsView(Frame):
             for integration_parameters_name, integration_parameters_value in simulation.integration_parameters.items():
                 self.integration_parameters_input.insert(tk.END, integration_parameters_name + '= ' + str(integration_parameters_value) + '\n')
         '''
+        diagram_frame = LabelFrame(system_characteristics_frame, text='Diagram', font= (font_parameters))
+        diagram_frame.grid(row = 0, column = 1, padx=10, pady=10)
+        self.label_diagram = Label(diagram_frame)
+        self.label_diagram.pack()
+
         self.buttons_frame = Frame(self)
         self.buttons_frame.grid(row = 2, column = 0, padx=10, pady=10, columnspan=2)
 #        home_button = Button(buttons_frame,text='Previous', font=(font_parameters), command=lambda: self.go_home(selected_system))

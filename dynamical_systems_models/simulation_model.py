@@ -3,6 +3,7 @@ import time
 import glob
 import json
 from json import JSONEncoder
+from PIL import ImageTk, Image
 
 from typing import TypedDict, Union
 from .base_model import ObservableModel
@@ -186,22 +187,34 @@ class Simulation_Encoder(JSONEncoder):
 
 class System():
     def __init__(self) -> None:
-        self.mechanical_system_library_path = vc.mechanical_system_library_path
+        self.mechanical_systems_library_path = vc.mechanical_system_library_path
+        self.selected_simulation = ''
 
     def get_list_of_systems(self):
-        systems = [ f.name for f in os.scandir(self.mechanical_system_library_path) if f.is_dir() ]
+        systems = [ f.name for f in os.scandir(self.mechanical_systems_library_path) if f.is_dir() ]
         return systems
     
     def get_list_of_simulations(self, system):
-        simulations = [ f.name for f in os.scandir(self.mechanical_system_library_path + system + '\\simulations') if f.is_file() ]
+        simulations = [ f.name for f in os.scandir(self.mechanical_systems_library_path + system + '\\simulations') if f.is_file() ]
         return simulations
+    
+    def get_mechanical_system_diagram(self):
+        mechanical_system_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_diagram_path))
+        no_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_library_path + 'no_diagram_provided.png'))
+        if self.selected_system != '':
+            if os.path.exists(self.mechanical_systems_diagram_path):
+                return mechanical_system_diagram
+            else:
+                return no_diagram
+        else:
+            return no_diagram
 
     @property
-    def mechanical_system_library_path(self):
-        return self._mechanical_system_library_path
-    @mechanical_system_library_path.setter
-    def mechanical_system_library_path(self, new_mechanical_system_library_path):
-        self._mechanical_system_library_path = new_mechanical_system_library_path
+    def mechanical_systems_library_path(self):
+        return self._mechanical_systems_library_path
+    @mechanical_systems_library_path.setter
+    def mechanical_systems_library_path(self, new_mechanical_systems_library_path):
+        self._mechanical_systems_library_path = new_mechanical_systems_library_path
 
     @property
     def selected_system(self):
@@ -210,6 +223,35 @@ class System():
     def selected_system(self, new_selected_system):
         self._selected_system = new_selected_system
     
+    @property
+    def selected_simulation(self):
+        return self._selected_simulation
+    @selected_simulation.setter
+    def selected_simulation(self, new_selected_simulation):
+        self._selected_simulation = new_selected_simulation
+
+    @property
+    def mechanical_system_path(self):
+        return self.mechanical_systems_library_path + self.selected_system + '\\'
+    @mechanical_system_path.setter
+    def mechanical_system_path(self, new_mechanical_system_path):
+        self._mechanical_system_path = new_mechanical_system_path
+
+    @property
+    def mechanical_system_simulation_path(self):
+        return self.mechanical_system_path + 'simulations\\' + self.selected_simulation
+    @mechanical_system_simulation_path.setter
+    def mechanical_system_simulation_path(self, new_mechanical_system_simulation_path):
+        self._mechanical_system_simulation_path = new_mechanical_system_simulation_path
+
+    @property
+    def mechanical_systems_diagram_path(self):
+        return self.mechanical_system_path + self.selected_system + '.png'
+    @mechanical_systems_diagram_path.setter
+    def mechanical_systems_diagram_path(self, new_mechanical_systems_diagram_path):
+        self._mechanical_systems_diagram_path = new_mechanical_systems_diagram_path
+
+
 
 
 

@@ -14,21 +14,28 @@ class SystemCharacteristicsController:
 
     def _bind(self) -> None:
         """Binds controller functions with respective buttons in the view"""
-        self.frame.previous_button.config(command=self.switch_start)
+        self.frame.previous_button.config(command=self.switch_previous)
         self.frame.save_button.config(command=self.save)
 
-    def switch_existing_simulations(self) -> None:
-        self.view.switch("existing_simulations")
-
     def _update_list_of_systems(self):
-        self.view.frames["start"].mechanical_systems_listbox.delete(0,tk.END)        
+        self.view.frames['start'].mechanical_systems_listbox.delete(0, tk.END)        
         systems_list = self.model.system.get_list_of_systems()
         for system in systems_list:
-            self.view.frames["start"].mechanical_systems_listbox.insert('end', system)
+            self.view.frames['start'].mechanical_systems_listbox.insert('end', system)
 
-    def switch_start(self) -> None:
-        self._update_list_of_systems()
-        self.view.switch('start', '')
+    def _update_list_of_simulations(self, selected_system):
+        self.view.frames['existing_simulations'].simulations_listbox.delete(0, tk.END)        
+        selected_system_simulations = self.model.system.get_list_of_simulations(selected_system)
+        for simulation in selected_system_simulations:
+            self.view.frames['existing_simulations'].simulations_listbox.insert('end', simulation)
+
+    def switch_previous(self) -> None:
+        if self.model.system.selected_simulation:
+            self._update_list_of_simulations(self.model.system.selected_system)
+            self.view.switch('existing_simulations', '')
+        else:
+            self._update_list_of_systems()
+            self.view.switch('start', '')
 
     def save(self) -> None:
         '''
@@ -50,7 +57,7 @@ class SystemCharacteristicsController:
         mechanical_system = {}
         
         mechanical_system['Name'] = self.frame.name_input.get().rstrip('\n')
-        mechanical_system['Path'] = self.model.system.mechanical_system_library_path + mechanical_system['Name'] + '\\'
+        mechanical_system['Path'] = self.model.system.mechanical_systems_library_path + mechanical_system['Name'] + '\\'
         mechanical_system['Dimensions'] = int(self.frame.number_dimensions_input.get().rstrip('\n'))
         mechanical_system['Particles'] = int(self.frame.number_particles_input.get().rstrip('\n'))
 

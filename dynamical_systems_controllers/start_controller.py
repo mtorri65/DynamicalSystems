@@ -38,6 +38,7 @@ class StartController:
         self.view.frames['existing_simulations'].mechanical_system_label.config(text = system)
 
     def switch_system_characteristics(self) -> None:
+        self.clear_system_characteristics()
         self.view.switch("system_characteristics", 'system description')
 
     def switch_existing_simulations(self, selected_system) -> None:
@@ -45,10 +46,18 @@ class StartController:
         self._update_mechanical_system_label(selected_system)        
         self.view.switch('existing_simulations', 'existing simulations')
 
-    def update_view(self) -> None:
-        current_user = self.model.auth.current_user
-        if current_user:
-            username = current_user["username"]
-            self.frame.greeting.config(text=f"Welcome, {username}!")
-        else:
-            self.frame.greeting.config(text=f"")
+    def clear_system_characteristics(self):
+        system_characteristics_frame = self.view.frames['system_characteristics']
+
+        system_characteristics_frame.name_input.delete(0, tk.END)
+        system_characteristics_frame.number_dimensions_input.delete(0, tk.END)
+        system_characteristics_frame.number_particles_input.delete(0, tk.END)
+        system_characteristics_frame.degrees_of_freedom_input.delete('1.0', tk.END)
+        system_characteristics_frame.parameters_input.delete('1.0', tk.END)
+        system_characteristics_frame.cartesian_coordinates_input.delete('1.0', tk.END)
+        system_characteristics_frame.potential_energy_input.delete('1.0', tk.END)
+        system_characteristics_frame.friction_coefficients_input.delete('1.0', tk.END)
+        system_characteristics_frame.driving_force_coefficients_input.delete('1.0', tk.END)
+        system_characteristics_frame.notes_input.delete('1.0', tk.END)
+        system_characteristics_frame.initial_conditions_input.delete('1.0', tk.END)
+        system_characteristics_frame.integration_parameters_input.delete('1.0', tk.END)
