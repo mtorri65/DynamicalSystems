@@ -17,8 +17,6 @@ class ExistingSimulationsController:
         self._bind()
 
     def _bind(self) -> None:
-#        """Binds controller functions with respective buttons in the view"""
-#        self.frame.signup_btn.config(command=self.switch_system_characteristics)
         self.frame.simulations_listbox.bind("<<ListboxSelect>>", self._select_simulation)
         self.frame.previous_button.config(command=self.switch_start)
 
@@ -37,36 +35,33 @@ class ExistingSimulationsController:
         self.view.switch('start', '')
 
     def _select_simulation(self, event):
-#        self.open_button['state'] = tk.ACTIVE
-#        global selected_system
-#        global selected_simulation
-
         selection = event.widget.curselection()
         if selection:
             index = selection[0]
             selected_simulation = event.widget.get(index)    
- #           simulations_window_handle = win32gui.FindWindow(None, title + ' - existing simulations')
- #           simulations_window_rect   = win32gui.GetWindowRect(simulations_window_handle)
             self.model.system.selected_simulation = selected_simulation
+        else:
+            self.model.system.selected_simulation = ''
 
         selected_system = self.model.system.selected_system
         if selected_system != '':
-            mechanical_system_simulation_path = self.model.system.mechanical_system_simulation_path
-            if mechanical_system_simulation_path != '':
-                with open(mechanical_system_simulation_path, 'r') as f:
-                    simulation_json = json.load(f)
+            if self.model.system.selected_simulation:
+                mechanical_system_simulation_path = self.model.system.mechanical_system_simulation_path
+                if mechanical_system_simulation_path != '':
+                    with open(mechanical_system_simulation_path, 'r') as f:
+                        simulation_json = json.load(f)
 
-                    simulation = self.model.simulation
-                    simulation.mechanical_system = simulation_json['Mechanical System']
-                    simulation.initial_conditions = simulation_json['Initial Conditions']
-                    simulation.integration_parameters = simulation_json['Integration Parameters']
-                    simulation.equations_of_motion = simulation_json['Equations of Motion']
-                    simulation.output = simulation_json['Output']
+                        simulation = self.model.simulation
+                        simulation.mechanical_system = simulation_json['Mechanical System']
+                        simulation.initial_conditions = simulation_json['Initial Conditions']
+                        simulation.integration_parameters = simulation_json['Integration Parameters']
+                        simulation.equations_of_motion = simulation_json['Equations of Motion']
+                        simulation.output = simulation_json['Output']
 
-                self.show_diagram()
-                self.update_system_characteristics(simulation)
+                    self.show_diagram()
+                    self.update_system_characteristics(simulation)
 
-            self.view.switch('system_characteristics', 'system description')
+                self.view.switch('system_characteristics', 'system description')
 
     def show_diagram(self):
         # see: https://web.archive.org/web/20201111190625/http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm

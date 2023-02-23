@@ -11,11 +11,8 @@ class StartController:
         self.frame = self.view.frames["start"]
         self._bind()
 
-#        self._update_list_of_systems()
-
     def _bind(self) -> None:
-#        self.frame.signout_btn.config(command=self.logout)
-        self.frame.new_button.config(command=self.switch_system_characteristics)
+        self.frame.create_new_system_button.config(command=self.switch_system_characteristics)
         self.frame.mechanical_systems_listbox.bind("<<ListboxSelect>>", self._select_system)
 #        self.frame.bind("<<ShowFrame>>", self._update_list_of_systems)
 
@@ -24,22 +21,38 @@ class StartController:
         system = event.widget.curselection()
         if system:
             index = system[0]
-            selected_system = event.widget.get(index)    
-            self.model.system.selected_system = selected_system
+            self.selected_system = event.widget.get(index)    
+            self.model.system.selected_system = self.selected_system
             self.view.frames['existing_simulations'].simulations_listbox.delete(0, tk.END)        
-            self.switch_existing_simulations(selected_system)
+            self.switch_existing_simulations(self.selected_system)
 
     def _update_list_of_simulations(self, selected_system):
+        frame = self.view.frames['existing_simulations']
+
         selected_system_simulations = self.model.system.get_list_of_simulations(selected_system)
-        for simulation in selected_system_simulations:
-            self.view.frames['existing_simulations'].simulations_listbox.insert('end', simulation)
+
+        frame.select_label.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
+        frame.simulations_listbox.grid(row=1, column=1, padx=10, pady=10)
+        if selected_system_simulations:
+            frame.create_button.grid_forget()
+            for simulation in selected_system_simulations:
+                frame.simulations_listbox.insert('end', simulation)
+        else:
+            frame.simulations_listbox.grid_forget()
+            frame.select_label.grid_forget()
+            frame.create_button.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
+            frame.create_button.config(command=self.switch_system_characteristics)
 
     def _update_mechanical_system_label(self, system):
         self.view.frames['existing_simulations'].mechanical_system_label.config(text = system)
 
     def switch_system_characteristics(self) -> None:
         self.clear_system_characteristics()
-        self.view.switch("system_characteristics", 'system description')
+
+        if self.selected_system != '':
+            self.view.frames['system_characteristics'].name_input.insert(tk.END, self.selected_system)
+
+        self.view.switch('system_characteristics', 'system description')
 
     def switch_existing_simulations(self, selected_system) -> None:
         self._update_list_of_simulations(selected_system)

@@ -199,10 +199,10 @@ class System():
         return simulations
     
     def get_mechanical_system_diagram(self):
-        mechanical_system_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_diagram_path))
         no_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_library_path + 'no_diagram_provided.png'))
         if self.selected_system != '':
             if os.path.exists(self.mechanical_systems_diagram_path):
+                mechanical_system_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_diagram_path))
                 return mechanical_system_diagram
             else:
                 return no_diagram

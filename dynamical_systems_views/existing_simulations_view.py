@@ -24,6 +24,10 @@ class ExistingSimulationsView(tk.Frame):
         self.select_label = tk.Label(self, text= "Select an existing simulation", font= (font_parameters))
         self.select_label.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
 
+        self.create_button = tk.Button(self, text= "Create a new simulation", font= (font_parameters))
+        self.create_button.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
+#        self.create_button.grid_forget()
+
         self.simulations_listbox = tk.Listbox(self, width=40, font= (font_parameters))
         self.simulations_listbox.grid(row=1, column=1, padx=10, pady=10)
         '''
