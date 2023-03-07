@@ -5,13 +5,9 @@ import json
 from json import JSONEncoder
 from PIL import ImageTk, Image
 
-from typing import TypedDict, Union
 from .base_model import ObservableModel
 
 from . import models_constants as vc
-
-#class User(TypedDict):
-#    username: str
 
 class Simulation(ObservableModel):
     def __init__(self, mechanical_system = {}, initial_conditions = {}, integration_parameters = {}, equations_of_motion = {}, output = {}):
@@ -189,13 +185,16 @@ class System():
     def __init__(self) -> None:
         self.mechanical_systems_library_path = vc.mechanical_system_library_path
         self.selected_simulation = ''
+        self.selected_system = ''
 
     def get_list_of_systems(self):
         systems = [ f.name for f in os.scandir(self.mechanical_systems_library_path) if f.is_dir() ]
         return systems
     
     def get_list_of_simulations(self, system):
-        simulations = [ f.name for f in os.scandir(self.mechanical_systems_library_path + system + '\\simulations') if f.is_file() ]
+        simulations = []
+        if system:
+            simulations = [ f.name for f in os.scandir(self.mechanical_systems_library_path + system + '\\simulations') if f.is_file() ]
         return simulations
     
     def get_mechanical_system_diagram(self):
@@ -250,29 +249,3 @@ class System():
     @mechanical_systems_diagram_path.setter
     def mechanical_systems_diagram_path(self, new_mechanical_systems_diagram_path):
         self._mechanical_systems_diagram_path = new_mechanical_systems_diagram_path
-
-
-
-
-
-#class Auth(ObservableModel):
-#    def __init__(self):
-#        pass
-
-
-    '''    
-        super().__init__()
-#        self.is_logged_in = False
-        self.is_logged_in = True
-        self.current_user: Union[User, None] = None
-
-    def login(self, user: User) -> None:
-        self.is_logged_in = True
-        self.current_user = user
-        self.trigger_event("auth_changed")
-
-    def logout(self) -> None:
-        self.is_logged_in = False
-        self.current_user = None
-        self.trigger_event("auth_changed")
-    '''

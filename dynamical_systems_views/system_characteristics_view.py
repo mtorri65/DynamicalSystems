@@ -27,12 +27,26 @@ class SystemCharacteristicsView(Frame):
         font_parameters = vc.font + fontsize
 
         self.name_input = Entry(system_characteristics_frame, width=40, font=(font_parameters), bd=2)
+        a = type(self.name_input)
+        c = False
+        d = False
+        if a == Entry:
+            c = True
+        else:
+            d = True
         self.name_input.grid(row=0, column=1, padx=10, pady=10, sticky='wn')
         self.number_dimensions_input = Entry(system_characteristics_frame, width=40, font=(font_parameters), bd=2)
         self.number_dimensions_input.grid(row=1, column=1, padx=10, pady=10, sticky='wn')
         self.number_particles_input = Entry(system_characteristics_frame, width=40, font=(font_parameters), bd=2)
         self.number_particles_input.grid(row=1, column=3, padx=10, pady=10, sticky='wn')
         self.degrees_of_freedom_input = scrolledtext.ScrolledText(system_characteristics_frame, width=40, height=4, font=(font_parameters), bd=2)
+        b = type(self.degrees_of_freedom_input)
+        e = False
+        f = False
+        if b == scrolledtext.ScrolledText:
+            e = True
+        else:
+            f = True
         self.degrees_of_freedom_input.grid(row=3, column=1, pady=10, padx=10, sticky='wn')
         self.parameters_input = scrolledtext.ScrolledText(system_characteristics_frame, width=40, height=4, font=(font_parameters), bd=2)
         self.parameters_input.grid(row=3, column=3, pady=10, padx=10, sticky='wn')
@@ -67,12 +81,22 @@ class SystemCharacteristicsView(Frame):
 
         self.buttons_frame = Frame(self)
         self.buttons_frame.grid(row = 2, column = 0, padx=10, pady=10, columnspan=2)
-#        home_button = Button(buttons_frame,text='Previous', font=(font_parameters), command=lambda: self.go_home(selected_system))
         self.previous_button = Button(self.buttons_frame,text='Previous', font=(font_parameters))
         self.previous_button.grid(row=0, column=0, padx = 10, pady=10)        
-#        save_button = Button(buttons_frame,text='Save', font=(font_parameters), command=self.save)
         self.save_button = Button(self.buttons_frame,text='Save', font=(font_parameters))
         self.save_button.grid(row=0, column=1, padx = 10, pady=10)
-#        run_button = Button(buttons_frame,text='Run', font=(font_parameters), command=self.run)
         self.run_button = Button(self.buttons_frame,text='Run', font=(font_parameters))
         self.run_button.grid(row=0, column=2, padx = 10, pady=10)
+
+        self.fields = {'name': self.name_input,
+                        'dimensions' : self.number_dimensions_input,
+                        'particles' : self.number_particles_input,
+                        'degrees_of_freedom' : self.degrees_of_freedom_input,
+                        'parameters' : self.parameters_input,
+                        'cartesian_coordinates' : self.cartesian_coordinates_input,
+                        'potential_energy' : self.potential_energy_input,
+                        'friction_coefficients' : self.friction_coefficients_input,
+                        'driving_force_coefficients' : self.friction_coefficients_input,
+                        'notes' : self.notes_input,
+                        'initial_conditions' : self.initial_conditions_input,
+                        'integration_parameters' : self.integration_parameters_input}

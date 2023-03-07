@@ -9,6 +9,5 @@ def main():
     controller = Controller(model, view)
     controller.start()
 
-
 if __name__ == "__main__":
     main()

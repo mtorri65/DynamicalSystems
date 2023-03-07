@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
 
 from dynamical_systems_models.main_model import Model
 from dynamical_systems_models.simulation_model import Simulation
@@ -9,50 +9,58 @@ class SystemCharacteristicsController:
     def __init__(self, model: Model, view: View):
         self.model = model
         self.view = view
-        self.frame = self.view.frames["system_characteristics"]
+        self.frame = self.view.frames['system_characteristics']
         self._bind()
 
     def _bind(self) -> None:
-        """Binds controller functions with respective buttons in the view"""
         self.frame.previous_button.config(command=self.switch_previous)
         self.frame.save_button.config(command=self.save)
 
-    def _update_list_of_systems(self):
-        self.view.frames['start'].mechanical_systems_listbox.delete(0, tk.END)        
-        systems_list = self.model.system.get_list_of_systems()
-        for system in systems_list:
-            self.view.frames['start'].mechanical_systems_listbox.insert('end', system)
+        for field in self.frame.fields.values():
+            field.bind('<KeyRelease>',lambda e: self._change_save_and_run_button_state())
 
-    def _update_list_of_simulations(self, selected_system):
-        self.view.frames['existing_simulations'].simulations_listbox.delete(0, tk.END)        
-        selected_system_simulations = self.model.system.get_list_of_simulations(selected_system)
-        for simulation in selected_system_simulations:
-            self.view.frames['existing_simulations'].simulations_listbox.insert('end', simulation)
+    def _change_save_and_run_button_state(self):
+        if self.frame.name_input.get():
+            self.frame.save_button.configure(state=tk.NORMAL)
+        else:
+            self.frame.save_button.configure(state=tk.DISABLED)       
+
+        have_fields_content = [False for i in range(len(self.frame.fields))]
+        for index, field in enumerate(self.frame.fields.values()):
+            field_content = ''
+            if type(field) == tk.Entry:
+                field_content = field.get()
+            elif type(field) == scrolledtext.ScrolledText:
+                field_content = field.get('1.0', 'end-1c')
+            if field_content:
+                have_fields_content[index] = True
+        
+        if all(have_fields_content):
+            self.frame.run_button.configure(state=tk.NORMAL)
+        else:        
+            self.frame.run_button.configure(state=tk.DISABLED)
+
+#    def _update_list_of_systems(self):
+#        self.view.frames['start'].mechanical_systems_listbox.delete(0, tk.END)        
+#        systems_list = self.model.system.get_list_of_systems()
+#        for system in systems_list:
+#            self.view.frames['start'].mechanical_systems_listbox.insert('end', system)
+
+#    def _update_list_of_simulations(self, selected_system):
+#        self.view.frames['existing_simulations'].simulations_listbox.delete(0, tk.END)        
+#        selected_system_simulations = self.model.system.get_list_of_simulations(selected_system)
+#        for simulation in selected_system_simulations:
+#            self.view.frames['existing_simulations'].simulations_listbox.insert('end', simulation)
 
     def switch_previous(self) -> None:
-        if self.model.system.selected_simulation:
-            self._update_list_of_simulations(self.model.system.selected_system)
+        if self.model.system.get_list_of_simulations(self.model.system.selected_system):
+            self.view.frames['existing_simulations'].simulations_listbox.delete(0, tk.END)        
             self.view.switch('existing_simulations', '')
         else:
-            self._update_list_of_systems()
+            self.view.frames['start'].mechanical_systems_listbox.delete(0, tk.END)        
             self.view.switch('start', '')
 
     def save(self) -> None:
-        '''
-        data = {
-            "fullname": self.frame.fullname_input.get(),
-            "username": self.frame.username_input.get(),
-            "password": self.frame.password_input.get(),
-            "has_agreed": self.frame.has_agreed.get(),
-        }
-        print(data)
-        user: User = {"username": data["username"]}
-        self.model.auth.login(user)
-        self.clear_form()
-        '''        
-#        global mechanical_system_path
-#        global selected_simulation
-
         self.simulation = Simulation()
         mechanical_system = {}
         
@@ -144,3 +152,15 @@ class SystemCharacteristicsController:
         self.simulation.output = output
 
         self.simulation.save_to_json()
+
+    def clear_system_characteristics(self):
+
+        for field in self.frame.fields.values():
+            if type(field) == tk.Entry:
+                start = 0
+            elif type(field) == scrolledtext.ScrolledText:
+                start = '1.0'
+            else:
+                print("Unknown type")
+            field.delete(start, tk.END)
+

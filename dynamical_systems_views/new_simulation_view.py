@@ -2,7 +2,7 @@ import tkinter as tk
 
 from . import views_constants as vc
 
-class ExistingSimulationsView(tk.Frame):
+class NewSimulationView(tk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -13,11 +13,9 @@ class ExistingSimulationsView(tk.Frame):
 
         fontsize = str(12)    
         font_parameters = vc.font + fontsize
-        self.select_label = tk.Label(self, text= "Select an existing simulation", font= (font_parameters))
-        self.select_label.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
+        self.create_button = tk.Button(self, text= "Create a new simulation", font= (font_parameters))
+        self.create_button.grid(row=1, column=0, padx=10, pady=10, sticky='wn')
 
-        self.simulations_listbox = tk.Listbox(self, width=40, font= (font_parameters))
-        self.simulations_listbox.grid(row=1, column=1, padx=10, pady=10)
         self.buttons_frame = tk.Frame(self)
         self.buttons_frame.grid(row=2, column=0, padx=10, pady=10, columnspan = 2)
         self.previous_button = tk.Button(self.buttons_frame,text='Previous', font=(font_parameters))

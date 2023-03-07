@@ -1,19 +1,16 @@
 import tkinter as tk
+from tkinter import scrolledtext
 import json
 from PIL import ImageTk, Image
 
-
-from models.main_model import Model
-from models.auth_model import User
-from views.main import View
-
+from dynamical_systems_models.main_model import Model
+from dynamical_systems_views.main_view import View
 
 class ExistingSimulationsController:
     def __init__(self, model: Model, view: View) -> None:
         self.model = model
         self.view = view
         self.frame = self.view.frames["existing_simulations"]
-#        self.selection = self.model.system.selected_system
         self._bind()
 
     def _bind(self) -> None:
@@ -24,14 +21,8 @@ class ExistingSimulationsController:
         selected_system = self.model.system.selected_system
         self.frame.mechanical_system_label.config(text=selected_system.replace('_',' '))
 
-    def _update_list_of_systems(self):
-        self.view.frames["start"].mechanical_systems_listbox.delete(0,tk.END)        
-        systems_list = self.model.system.get_list_of_systems()
-        for system in systems_list:
-            self.view.frames["start"].mechanical_systems_listbox.insert('end', system)
-
     def switch_start(self) -> None:
-        self._update_list_of_systems()
+        self.view.frames["start"].mechanical_systems_listbox.delete(0,tk.END)        
         self.view.switch('start', '')
 
     def _select_simulation(self, event):
@@ -40,28 +31,23 @@ class ExistingSimulationsController:
             index = selection[0]
             selected_simulation = event.widget.get(index)    
             self.model.system.selected_simulation = selected_simulation
-        else:
-            self.model.system.selected_simulation = ''
-
         selected_system = self.model.system.selected_system
+
         if selected_system != '':
             if self.model.system.selected_simulation:
                 mechanical_system_simulation_path = self.model.system.mechanical_system_simulation_path
                 if mechanical_system_simulation_path != '':
                     with open(mechanical_system_simulation_path, 'r') as f:
                         simulation_json = json.load(f)
-
                         simulation = self.model.simulation
                         simulation.mechanical_system = simulation_json['Mechanical System']
                         simulation.initial_conditions = simulation_json['Initial Conditions']
                         simulation.integration_parameters = simulation_json['Integration Parameters']
                         simulation.equations_of_motion = simulation_json['Equations of Motion']
                         simulation.output = simulation_json['Output']
-
-                    self.show_diagram()
                     self.update_system_characteristics(simulation)
-
-                self.view.switch('system_characteristics', 'system description')
+            self.show_diagram()
+            self.view.switch('system_characteristics', 'system description')
 
     def show_diagram(self):
         # see: https://web.archive.org/web/20201111190625/http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
@@ -72,7 +58,6 @@ class ExistingSimulationsController:
 
     def update_system_characteristics(self, simulation):
         system_characteristics_frame = self.view.frames['system_characteristics']
-
         self.clear_system_characteristics()
 
         system_characteristics_frame.name_input.insert(tk.END, simulation.mechanical_system['Name'])
@@ -99,6 +84,18 @@ class ExistingSimulationsController:
     def clear_system_characteristics(self):
         system_characteristics_frame = self.view.frames['system_characteristics']
 
+        for field in system_characteristics_frame.fields.values():
+            if type(field) == tk.Entry:
+                start = 0
+            elif type(field) == scrolledtext.ScrolledText:
+                start = '1.0'
+            else:
+                print("Unknown type")
+            field.delete(start, tk.END)
+
+        '''
+        system_characteristics_frame = self.view.frames['system_characteristics']
+
         system_characteristics_frame.name_input.delete(0, tk.END)
         system_characteristics_frame.number_dimensions_input.delete(0, tk.END)
         system_characteristics_frame.number_particles_input.delete(0, tk.END)
@@ -111,3 +108,4 @@ class ExistingSimulationsController:
         system_characteristics_frame.notes_input.delete('1.0', tk.END)
         system_characteristics_frame.initial_conditions_input.delete('1.0', tk.END)
         system_characteristics_frame.integration_parameters_input.delete('1.0', tk.END)
+        '''
