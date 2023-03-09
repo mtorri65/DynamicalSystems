@@ -15,15 +15,7 @@ class ExistingSimulationsController:
 
     def _bind(self) -> None:
         self.frame.simulations_listbox.bind("<<ListboxSelect>>", self._select_simulation)
-        self.frame.previous_button.config(command=self.switch_start)
-
-    def update_view(self):
-        selected_system = self.model.system.selected_system
-        self.frame.mechanical_system_label.config(text=selected_system.replace('_',' '))
-
-    def switch_start(self) -> None:
-        self.view.frames["start"].mechanical_systems_listbox.delete(0,tk.END)        
-        self.view.switch('start', '')
+        self.frame.previous_button.config(command=self._switch_start)
 
     def _select_simulation(self, event):
         selection = event.widget.curselection()
@@ -45,43 +37,51 @@ class ExistingSimulationsController:
                         simulation.integration_parameters = simulation_json['Integration Parameters']
                         simulation.equations_of_motion = simulation_json['Equations of Motion']
                         simulation.output = simulation_json['Output']
-                    self.update_system_characteristics(simulation)
-            self.show_diagram()
+                    self._update_system_characteristics(simulation)
+            self._show_diagram()
             self.view.switch('system_characteristics', 'system description')
 
-    def show_diagram(self):
+    def _switch_start(self) -> None:
+        self.view.frames["start"].mechanical_systems_listbox.delete(0,tk.END)        
+        self.view.switch('start', '')
+
+    def _update_system_characteristics(self, simulation):
+        system_characteristics_frame = self.view.frames['system_characteristics']
+        self._clear_system_characteristics()
+
+        self.fields = {'name': simulation.mechanical_system['Name'],
+                        'dimensions' : simulation.mechanical_system['Dimensions'],
+                        'particles' : simulation.mechanical_system['Particles'],
+                        'degrees_of_freedom' : simulation.mechanical_system['Degrees of Freedom'],
+                        'parameters' : simulation.mechanical_system['Parameters'],
+                        'cartesian_coordinates' : simulation.mechanical_system['Cartesian Coordinates'],
+                        'potential_energy' : simulation.mechanical_system['Potential Energy'],
+                        'friction_coefficients' : simulation.mechanical_system['Friction Coefficients'],
+                        'driving_force_coefficients' : simulation.mechanical_system['Driving Force Coefficients'],
+                        'notes' : simulation.mechanical_system['Notes'],
+                        'initial_conditions' : simulation.initial_conditions,
+                        'integration_parameters' : simulation.integration_parameters}
+
+
+        for field_name, field in self.fields.items():
+            if field_name in ['name', 'dimensions', 'particles', 'notes']:
+                system_characteristics_frame.fields[field_name].insert(tk.END, field)
+            else:
+                if field_name == 'degrees_of_freedom':
+                    for field_item_value in field.values():
+                        system_characteristics_frame.fields[field_name].insert(tk.END, field_item_value + '\n')
+                else:
+                    for field_item_name, field_item_value in field.items():
+                        system_characteristics_frame.fields[field_name].insert(tk.END, field_item_name + '= ' + str(field_item_value) + '\n')
+
+    def _show_diagram(self):
         # see: https://web.archive.org/web/20201111190625/http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
         # as to why a reference to the image (diagram, in this case) must be kept
         diagram = self.model.system.get_mechanical_system_diagram()
         self.view.frames['system_characteristics'].label_diagram.config(image = diagram)
         self.view.frames['system_characteristics'].label_diagram.image = diagram
 
-    def update_system_characteristics(self, simulation):
-        system_characteristics_frame = self.view.frames['system_characteristics']
-        self.clear_system_characteristics()
-
-        system_characteristics_frame.name_input.insert(tk.END, simulation.mechanical_system['Name'])
-        system_characteristics_frame.number_dimensions_input.insert(tk.END, simulation.mechanical_system['Dimensions'])
-        system_characteristics_frame.number_particles_input.insert(tk.END, simulation.mechanical_system['Particles'])
-        for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom'].values():
-            system_characteristics_frame.degrees_of_freedom_input.insert(tk.END, degree_of_freedom + '\n')
-        for parameter_name, parameter_value in simulation.mechanical_system['Parameters'].items():
-            system_characteristics_frame.parameters_input.insert(tk.END, parameter_name + '= ' + str(parameter_value) + '\n')
-        for cartesian_coordinate_name, cartesian_coordinate_value in simulation.mechanical_system['Cartesian Coordinates'].items():
-            system_characteristics_frame.cartesian_coordinates_input.insert(tk.END, cartesian_coordinate_name + '= ' + cartesian_coordinate_value + '\n')
-        for potential_energy_name, potential_energy_value in simulation.mechanical_system['Potential Energy'].items():
-            system_characteristics_frame.potential_energy_input.insert(tk.END, potential_energy_name + '= ' + potential_energy_value + '\n')
-        for friction_coefficient_name, friction_coefficient_value in simulation.mechanical_system['Friction Coefficients'].items():
-            system_characteristics_frame.friction_coefficients_input.insert(tk.END, friction_coefficient_name + '= ' + str(friction_coefficient_value) + '\n')
-        for driving_force_coefficient_name, driving_force_coefficient_value in simulation.mechanical_system['Driving Force Coefficients'].items():
-            system_characteristics_frame.driving_force_coefficients_input.insert(tk.END, driving_force_coefficient_name + '= ' + str(driving_force_coefficient_value) + '\n')
-        system_characteristics_frame.notes_input.insert(tk.END, simulation.mechanical_system['Notes'])
-        for initial_condition_name, initial_condition_value in simulation.initial_conditions.items():
-            system_characteristics_frame.initial_conditions_input.insert(tk.END, initial_condition_name + '= ' + str(initial_condition_value) + '\n')
-        for integration_parameters_name, integration_parameters_value in simulation.integration_parameters.items():
-            system_characteristics_frame.integration_parameters_input.insert(tk.END, integration_parameters_name + '= ' + str(integration_parameters_value) + '\n')
-
-    def clear_system_characteristics(self):
+    def _clear_system_characteristics(self):
         system_characteristics_frame = self.view.frames['system_characteristics']
 
         for field in system_characteristics_frame.fields.values():
@@ -92,20 +92,3 @@ class ExistingSimulationsController:
             else:
                 print("Unknown type")
             field.delete(start, tk.END)
-
-        '''
-        system_characteristics_frame = self.view.frames['system_characteristics']
-
-        system_characteristics_frame.name_input.delete(0, tk.END)
-        system_characteristics_frame.number_dimensions_input.delete(0, tk.END)
-        system_characteristics_frame.number_particles_input.delete(0, tk.END)
-        system_characteristics_frame.degrees_of_freedom_input.delete('1.0', tk.END)
-        system_characteristics_frame.parameters_input.delete('1.0', tk.END)
-        system_characteristics_frame.cartesian_coordinates_input.delete('1.0', tk.END)
-        system_characteristics_frame.potential_energy_input.delete('1.0', tk.END)
-        system_characteristics_frame.friction_coefficients_input.delete('1.0', tk.END)
-        system_characteristics_frame.driving_force_coefficients_input.delete('1.0', tk.END)
-        system_characteristics_frame.notes_input.delete('1.0', tk.END)
-        system_characteristics_frame.initial_conditions_input.delete('1.0', tk.END)
-        system_characteristics_frame.integration_parameters_input.delete('1.0', tk.END)
-        '''
