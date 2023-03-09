@@ -96,7 +96,7 @@ class SystemCharacteristicsView(Frame):
                         'cartesian_coordinates' : self.cartesian_coordinates_input,
                         'potential_energy' : self.potential_energy_input,
                         'friction_coefficients' : self.friction_coefficients_input,
-                        'driving_force_coefficients' : self.friction_coefficients_input,
+                        'driving_force_coefficients' : self.driving_force_coefficients_input,
                         'notes' : self.notes_input,
                         'initial_conditions' : self.initial_conditions_input,
                         'integration_parameters' : self.integration_parameters_input}

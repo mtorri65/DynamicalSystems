@@ -37,9 +37,9 @@ class Controller:
             system_simulations = self.model.system.get_list_of_simulations(self.model.system.selected_system)
             for simulation in system_simulations:
                 self.view.frames[frame_name].simulations_listbox.insert('end', simulation)
-            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system)
+            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system.replace('_',' '))
         elif frame_name == 'new_simulation':
-            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system)
+            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system.replace('_',' '))
         else:
             print('I need frame_name!')
 
