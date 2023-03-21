@@ -16,41 +16,43 @@ class Controller:
         self.existing_simulations_controller = ExistingSimulationsController(model, view)
         self.new_simulation_controller = NewSimulationController(model, view)
         self.system_characteristics_controller = SystemCharacteristicsController(model, view)
+        self.frame_existing_simulation = self.view.frames['existing_simulations']
 
         for frame_name, frame in self.view.frames.items():
             frame.bind('<<ShowFrame>>', lambda event, frame_name=frame_name:self.get_data(event, frame_name))
 
     def get_data(self, event, frame_name):
         if frame_name == 'start':
-            for system in self.model.system.get_list_of_systems():
-                self.view.frames[frame_name].mechanical_systems_listbox.insert('end', system)    
+            self.start_controller.clear_systems_list()
+            self.start_controller.populate_systems_list()    
         elif frame_name == 'system_characteristics':
-            if not self.model.system.selected_simulation:
-                self.system_characteristics_controller.clear_system_characteristics()
-                self.view.frames[frame_name].name_input.insert(tk.END, self.model.system.selected_system)
-            if self.view.frames[frame_name].name_input.get() == '':
-                self.view.frames[frame_name].save_button['state'] = 'disabled'
-                self.view.frames[frame_name].run_button['state'] = 'disabled'
+            if self.model.system.selected_system:
+                if not self.model.system.selected_simulation:
+                    # system selected, but simulation not selected: this happens when a system is picked from the Start page that doesn't have any simulations associated
+                    self.system_characteristics_controller.clear_system_characteristics()
+                    self.system_characteristics_controller.update_system_name()
+                else:
+                    # system and simulation selected: this happens when a system is picked from the Start page and one of its simulations is selected from the Existing Simulation page
+                    self.system_characteristics_controller.update_system_characteristics(self.model.simulation)
             else:
-                self.view.frames[frame_name].save_button['state'] = 'active'                
+                # system is not selected: this happens when the button Create New System is clicked on the Start page
+                self.system_characteristics_controller.clear_system_characteristics()
+#                self.new_simulation_controller.clear_system_diagram()            
+            self.system_characteristics_controller.show_diagram()
+            self.system_characteristics_controller._change_save_and_run_button_state()   # this always happens
         elif frame_name == 'existing_simulations':
-            system_simulations = self.model.system.get_list_of_simulations(self.model.system.selected_system)
-            for simulation in system_simulations:
-                self.view.frames[frame_name].simulations_listbox.insert('end', simulation)
-            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system.replace('_',' '))
+            self.existing_simulations_controller.clear_simulations_list()
+            self.existing_simulations_controller.populate_simulations_list()
+            self.existing_simulations_controller.replace_system_label()
         elif frame_name == 'new_simulation':
-            self.view.frames[frame_name].mechanical_system_label.config(text = self.model.system.selected_system.replace('_',' '))
+            self.new_simulation_controller.replace_system_label()
+#            self.new_simulation_controller.clear_system_diagram()
         else:
             print('I need frame_name!')
-
-#    def systems_listener(self) -> None:
-# should show the systems when the start page shows up
-#        self.view.switch("start", '')
-#        self.view.frames['start'].mechanical_systems_listbox
 
     def start(self) -> None:
         # Here, you can do operations required before launching the gui, for example,
         for system in self.model.system.get_list_of_systems():
             self.view.frames['start'].mechanical_systems_listbox.insert('end', system)        
-        self.view.switch("start", '')
+        self.view.switch('start', '')
         self.view.start_mainloop()

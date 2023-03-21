@@ -27,7 +27,7 @@ class View:
 
     def _add_frame(self, Frame, name: str) -> None:
         self.frames[name] = Frame(self.root)
-        self.frames[name].grid(row=0, column=0, sticky="nsew")
+        self.frames[name].grid(row=0, column=0, sticky='nsew')
 
     def switch(self, name: str, title: str) -> None:
         frame = self.frames[name]

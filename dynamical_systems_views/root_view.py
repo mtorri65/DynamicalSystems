@@ -24,4 +24,4 @@ class Root(Tk):
         self.title(vc.title)
         self.iconbitmap(vc.icon)
         self.geometry('+' + str(vc.offset_x) + '+' + str(vc.offset_y))
-        self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+        self.title_font = tkfont.Font(family='Helvetica', size=18, weight='bold', slant='italic')

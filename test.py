@@ -1,28 +1,34 @@
-import tkinter as tk
+import feedparser
 
-root = tk.Tk()
+# Arxiv API URL
+base_url = 'http://export.arxiv.org/api/query?'
 
-class MyClass:
-    def __init__(self, root) -> None:
-        self.root = root
+# Search parameters
+search_query = 'cat:nlin AND all:emergence'
+sort_by = 'submittedDate'
+sort_order = 'descending'
+max_results = 5
 
-    def UI(self):
-        self.e = tk.Entry(self.root, font = 20,borderwidth=5)
-        self.e.pack()
-        self.button = tk.Button(self.root, text="Click Me!")
-        self.button['state'] = 'disabled'
-        self.button.pack()
+# Construct query URL
+query = f'search_query={search_query}&sortBy={sort_by}&sortOrder={sort_order}&max_results={max_results}'
 
-        self.e.bind('<KeyRelease>',lambda e: self.capture()) # Bind keyrelease to the function
+# Send query to Arxiv API
+response = feedparser.parse(base_url + query)
 
-    def capture(self):
-        if self.e.get():
-            self.button['state'] = 'normal'
-        else:
-            self.button['state'] = 'disabled'
+# Extract paper information
+papers = []
+for entry in response.entries:
+    title = entry.title
+    summary = entry.summary
+    authors = ', '.join(author.name for author in entry.authors)
+    link = entry.link
+    
+    papers.append({'title': title, 'summary': summary, 'authors': authors, 'link': link})
 
-
-myclass = MyClass(root)
-myclass.UI()
-
-root.mainloop()
+# Print results
+for paper in papers:
+    print(f"Title: {paper['title']}")
+    print(f"Authors: {paper['authors']}")
+    print(f"Summary: {paper['summary']}")
+    print(f"Link: {paper['link']}")
+    print('\n')
