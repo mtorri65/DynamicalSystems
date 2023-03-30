@@ -4,10 +4,12 @@ import glob
 import json
 from json import JSONEncoder
 from PIL import ImageTk, Image
+import sys
+import importlib
 
 from .base_model import ObservableModel
 
-from . import models_constants as vc
+from . import models_constants as mc
 
 class Simulation(ObservableModel):
     def __init__(self, mechanical_system = {}, initial_conditions = {}, integration_parameters = {}, equations_of_motion = {}, output = {}):
@@ -55,6 +57,8 @@ class Simulation(ObservableModel):
 
     def save_to_json(self):
         simulation_json_files_folder = self.mechanical_system['Path'] + 'simulations\\'
+        if not os.path.exists(simulation_json_files_folder):
+            os.makedirs(simulation_json_files_folder)
         mechanical_system_json_file = simulation_json_files_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
 
         file_type = r'\*json'
@@ -64,18 +68,37 @@ class Simulation(ObservableModel):
             with open(most_recent_file, 'r') as f:
                 most_recent_json_string = json.load(f)
                 if (most_recent_json_string['Mechanical System'] == self.mechanical_system) and (most_recent_json_string['Initial Conditions'] == self.initial_conditions) and (most_recent_json_string['Integration Parameters'] == self.integration_parameters):
-#                    messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
-                    print('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
-                else:
-                    with open(mechanical_system_json_file, 'w') as f:
-                        json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
-                        selected_simulation = os.path.basename(mechanical_system_json_file)
-        else:
-            if not os.path.exists(simulation_json_files_folder):
-                os.makedirs(simulation_json_files_folder)
+#                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
+                    print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
+                    return
             with open(mechanical_system_json_file, 'w') as f:
                 json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
-                selected_simulation = os.path.basename(mechanical_system_json_file)
+                self.new_simulation = os.path.basename(mechanical_system_json_file)
+
+    def serialize_equations_of_motion(self):
+        new_equations_of_motion = {}
+        for second_derivative, equations_of_motion in self.equations_of_motion.items():
+            new_equations_of_motion_key = str(second_derivative)
+            new_equations_of_motion_value = str(equations_of_motion)
+            new_equations_of_motion[new_equations_of_motion_key] = new_equations_of_motion_value
+        self._save_simulation_to_json(new_equations_of_motion, 'Equations of Motion')
+
+    def serialize_output(self):
+        new_output = {}
+        for output_key, output_value in self.output.items():
+            new_output_key = output_key
+            new_output_value = output_value.tolist()
+            new_output[new_output_key] = new_output_value
+        self._save_simulation_to_json(new_output, 'Output')
+
+    def _save_simulation_to_json(self, new_property, property_name):
+        simulation_json = ''
+        with open(self.mechanical_system['Path'] + '\\simulations\\' + self.new_simulation, 'r') as f:
+            simulation_json = json.load(f)
+        simulation_json[property_name] = new_property
+        with open(self.mechanical_system['Path'] + '\\simulations\\' + self.new_simulation, 'w') as f:
+            json.dump(simulation_json, f, indent=2, separators=(',',': '))
+
 
 class Simulation_Encoder(JSONEncoder):
     def default(self, obj):        
@@ -183,7 +206,7 @@ class Simulation_Encoder(JSONEncoder):
 
 class System(object):
     def __init__(self) -> None:
-        self.mechanical_systems_library_path = vc.mechanical_system_library_path
+        self.mechanical_systems_library_path = mc.mechanical_system_library_path
         self.selected_simulation = ''
         self.selected_system = ''
         self.mechanical_systems_diagram_path = ''
@@ -223,7 +246,6 @@ class System(object):
             self.mechanical_systems_simulation_path = self.mechanical_system_path + 'simulations\\'
         else:
             self.mechanical_systems_simulation_path = self.mechanical_system_path + 'simulations\\' + self.selected_simulation
-            a = 1
         
     def set_mechanical_system_diagram_path(self):
         self.set_mechanical_system_path()
@@ -256,3 +278,385 @@ class System(object):
     @property
     def mechanical_system_simulation_path(self):
         return self._mechanical_system_simulation_path
+    
+class Equations_Of_Motion_Builder():
+    def __init__(self, simulation):
+        self.simulation = simulation
+
+    def build_equations_of_motion_module(self):
+        # build equations_of_motion.py file
+        with open(self.simulation.mechanical_system['Path'] + 'equations_of_motion.py', 'w') as file_write:
+            file_write.write('import sympy\n')
+            file_write.write('import os\n')
+            file_write.write('from sympy.parsing.sympy_parser import parse_expr\n')
+            file_write.write('\n')
+            file_write.write('def derive_equations_of_motion(simulation):\n')
+            file_write.write('\tt = sympy.symbols(\'t\')')
+            file_write.write('\n')
+            file_write.write('\tdegrees_of_freedom = list(simulation.mechanical_system[\'Degrees of Freedom\'].values())\n')
+            file_write.write('\tvelocities = list(simulation.mechanical_system[\'Velocities\'].values())\n')
+            file_write.write('\taccelerations = list(simulation.mechanical_system[\'Accelerations\'].values())\n')
+            file_write.write('\tsecond_derivatives_simplified = {}\n')
+            file_write.write('\n')
+            file_write.write('\tif len(simulation.equations_of_motion) != 0:\n')
+            file_write.write('\t\tfor acceleration in simulation.mechanical_system[\'Accelerations\'].values():\n')
+            file_write.write('\t\t\tsecond_derivatives_simplified[acceleration] = simulation.equations_of_motion[str(acceleration)]\n')
+            file_write.write('\telse:\n')
+            
+            file_write.write('\t\tparameters_names = list(simulation.mechanical_system[\'Parameters\'])\n')
+            parameters_names = list(self.simulation.mechanical_system['Parameters'])
+            for index in range(len(parameters_names)):
+                file_write.write('\t\t' + str(parameters_names[index]) + ' = parameters_names[' + str(index) + ']\n')
+            file_write.write('\t\tdegrees_of_freedom = list(simulation.mechanical_system[\'Degrees of Freedom\'].values())\n')
+            degrees_of_freedom_names = list(self.simulation.mechanical_system['Degrees of Freedom'])
+            for index in range(len(degrees_of_freedom_names)):
+                file_write.write('\t\t' + str(degrees_of_freedom_names[index]) + ' = degrees_of_freedom[' + str(index) + ']\n')
+            file_write.write('\t\tfriction_coefficients_names = list(simulation.mechanical_system[\'Friction Coefficients\'])\n')
+            friction_coefficients_names = list(self.simulation.mechanical_system['Friction Coefficients'])
+            for index in range(len(friction_coefficients_names)):
+                file_write.write('\t\t' + str(friction_coefficients_names[index]) + ' = friction_coefficients_names[' + str(index) + ']\n')
+            file_write.write('\t\tdriving_force_coefficients_names = list(simulation.mechanical_system[\'Driving Force Coefficients\'])\n')
+            driving_force_coefficients_names = list(self.simulation.mechanical_system['Driving Force Coefficients'])
+            for index in range(len(driving_force_coefficients_names)):
+                file_write.write('\t\t' + str(driving_force_coefficients_names[index]) + ' = driving_force_coefficients_names[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+
+            file_write.write('# calculate cartesian coordinates\n')
+            for cartesian_coordinate_name in self.simulation.mechanical_system['Cartesian Coordinates']:
+                cartesian_coordinate = self.simulation.mechanical_system['Cartesian Coordinates'][cartesian_coordinate_name]
+                file_write.write('\t\t' + str(cartesian_coordinate_name) + ' = ' + cartesian_coordinate + '\n')
+            file_write.write('\n')
+
+            file_write.write('# calculate kinetic energy\n')
+            for index_p in range(self.simulation.mechanical_system['Particles']):
+                v_square = '\t\tv' + str(index_p + 1) + '_square = '
+
+                index_c = 0
+                for cartesian_coordinate_name in self.simulation.mechanical_system['Cartesian Coordinates']:
+                    cartesian_coordinate = self.simulation.mechanical_system['Cartesian Coordinates'][cartesian_coordinate_name]
+                    if index_c // self.simulation.mechanical_system['Dimensions'] == index_p:
+                        v_square = v_square + 'sympy.diff(' + str(cartesian_coordinate_name) + ', t)**2'
+                        if index_c % self.simulation.mechanical_system['Dimensions'] < self.simulation.mechanical_system['Dimensions'] - 1:
+                            v_square = v_square + ' + '
+                    index_c = index_c + 1        
+                file_write.write(v_square + '\n')
+
+            for index in range(self.simulation.mechanical_system['Particles']):
+                file_write.write('\t\t' + 'T' + str(index + 1) + ' = 1/2 * m' + str(index + 1) + ' * v' + str(index + 1) + '_square\n')
+
+            T = 'T = '
+            for index in range(self.simulation.mechanical_system['Particles']):
+                T = T + 'T' + str(index + 1)
+                if index < self.simulation.mechanical_system['Particles'] - 1:
+                    T = T + ' + '
+
+            file_write.write('\t\t' + T + '\n')
+            file_write.write('\t\tT_expand = 2*T.expand() # the factor 1/2 in the kinetic energy is not part of the kinetic energy matrix. To neautralize it, T_expand is multiplied by 2')
+            file_write.write('\n')
+            file_write.write('\n')
+
+            file_write.write('# calculate kinetic energy matrix\n')
+            file_write.write('\t\tK ={ (row,column):0 for row in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])) for column in range(len(simulation.mechanical_system[\'Degrees of Freedom\']))}\n')
+            file_write.write('\t\tn = 0\n')
+            file_write.write('\t\tfor velocity_name_n in simulation.mechanical_system[\'Velocities\']:\n')
+            file_write.write('\t\t\tvelocity_n = simulation.mechanical_system[\'Velocities\'][velocity_name_n]\n')
+            file_write.write('\t\t\tK[n, n] = (T_expand.coeff(velocity_n, 2)).simplify()\n')
+            file_write.write('\t\t\tn = n + 1\n')
+
+            file_write.write('\t\tn = 0\n')
+            file_write.write('\t\tfor velocity_name_n in simulation.mechanical_system[\'Velocities\']:\n')
+            file_write.write('\t\t\tvelocity_n = simulation.mechanical_system[\'Velocities\'][velocity_name_n]\n')
+            file_write.write('\t\t\tp = 0\n')
+            file_write.write('\t\t\tfor velocity_name_p in simulation.mechanical_system[\'Velocities\']:\n')
+            file_write.write('\t\t\t\tvelocity_p = simulation.mechanical_system[\'Velocities\'][velocity_name_p]\n')
+            file_write.write('\t\t\t\tif n < p:\n')
+            file_write.write('\t\t\t\t\tK[n,p] = (T_expand.coeff(velocity_n*velocity_p)).simplify()\n')            
+            file_write.write('\t\t\t\tp = p + 1\n')
+            file_write.write('\t\t\tn = n + 1\n')
+            file_write.write('\n')
+
+            file_write.write('\t\tdKdq ={ (degree_of_freedom, row,column):0 for degree_of_freedom in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])) for row in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])) for column in range(len(simulation.mechanical_system[\'Degrees of Freedom\']))}\n')
+            file_write.write('\t\tdegrees_of_freedom = list(simulation.mechanical_system[\'Degrees of Freedom\'].values())\n')
+            file_write.write('\t\th = 0\n')
+            file_write.write('\t\tfor degree_of_freedom_h in degrees_of_freedom:\n')
+            file_write.write('\t\t\tfor n in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
+            file_write.write('\t\t\t\tfor p in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
+            file_write.write('\t\t\t\t\tdKdq[h,p,n] = sympy.diff(K[p,n], degree_of_freedom_h).simplify()\n')
+            file_write.write('\t\t\th = h + 1\n')
+            file_write.write('\n')
+
+            file_write.write('# calculate potential energy\n')
+            file_write.write('\t\tV_single_particle = { (row):1 for row in range(simulation.mechanical_system[\'Particles\'] + 1)}\n')
+            index = 0
+            for single_particle_potential_energy in self.simulation.mechanical_system['Potential Energy'].values():            
+                file_write.write('\t\tV_single_particle['+ str(index) + '] = ' + single_particle_potential_energy + '\n')
+                index = index + 1
+            file_write.write('\n')
+
+            file_write.write('\t\tdVdq ={ (row, column):0 for row in range(simulation.mechanical_system[\'Particles\']) for column in range(len(simulation.mechanical_system[\'Degrees of Freedom\']))}\n')
+            file_write.write('\t\tfor n in range(simulation.mechanical_system[\'Particles\']):\n')
+            file_write.write('\t\t\tp = 0\n')
+            file_write.write('\t\t\tfor degree_of_freedom_p in degrees_of_freedom:\n')
+            file_write.write('\t\t\t\tdVdq[n, p] = sympy.diff(V_single_particle[n], degree_of_freedom_p).simplify()\n')
+            file_write.write('\t\t\t\tp = p + 1\n')
+            file_write.write('\n')
+
+            file_write.write('# calculate equations_of_motion\n')
+            file_write.write('\t\tLE = []\n')
+            file_write.write('\t\taccelerations = list(simulation.mechanical_system[\'Accelerations\'].values())\n')
+            file_write.write('\t\tvelocities = list(simulation.mechanical_system[\'Velocities\'].values())\n')
+            file_write.write('\t\tfor h in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
+            file_write.write('\t\t\tterm1 = 0\n')
+            file_write.write('\t\t\tterm2 = 0\n')
+            file_write.write('\t\t\tterm3 = 0\n')
+            file_write.write('\t\t\tterm4 = 0\n')
+            file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Accelerations\'])):\n')
+            file_write.write('\t\t\t\tterm1 = term1 + (K[h,p] + K[p,h])*accelerations[p]\n')
+            file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Velocities\'])):\n')
+            file_write.write('\t\t\t\tfor n in range(len(simulation.mechanical_system[\'Velocities\'])):\n')
+            file_write.write('\t\t\t\t\tterm2 = term2 + (dKdq[n,h,p] + dKdq[n,p,h])*velocities[n]*velocities[p]\n')
+            file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Velocities\'])):\n')
+            file_write.write('\t\t\t\tfor n in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
+            file_write.write('\t\t\t\t\tterm3 = term3 + dKdq[h,n,p]*velocities[n]*velocities[p]\n')
+            file_write.write('\t\t\tfor r in range(simulation.mechanical_system[\'Particles\']):\n')
+            file_write.write('\t\t\t\tterm4 = term4 + dVdq[r,h]\n')
+            file_write.write('\t\t\tLagrange_equation = (.5*(term1 + term2 - term3) + term4).simplify()\n')
+            file_write.write('\t\t\tLE.append(Lagrange_equation)\n')
+            file_write.write('\n')
+
+            file_write.write('\t\tLE_expand = []\n')
+            file_write.write('\t\tfor index in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
+            file_write.write('\t\t\tLE_expand.append(LE[index].expand())\n')
+            file_write.write('\t\tMat ={ (row, column):0 for row in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])) for column in range(len(simulation.mechanical_system[\'Degrees of Freedom\']) + 1)}\n')
+
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                for p in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                    file_write.write('\t\tMat[' + str(n) + ', ' + str(p) + '] = LE_expand[' + str(n) + '].coeff(sympy.Derivative(degrees_of_freedom[' + str(p) + ']' + ', (t, 2)))\n')
+            file_write.write('\t\tcoeffs = { (row):0 for row in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])) }\n')
+
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                args = '\t\tcoeffs[' + str(n) + '] = sympy.collect(LE_expand[' + str(n) + '], ['
+                for p in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                    args = args + 'sympy.Derivative(degrees_of_freedom[' + str(p) + '], (t, 2))'
+                    if p < len(self.simulation.mechanical_system['Degrees of Freedom']) - 1:
+                        args = args + ', '                
+                file_write.write(args + '], evaluate=False)\n')
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                file_write.write('\t\tMat[' + str(n) + ',' + str(len(self.simulation.mechanical_system['Degrees of Freedom'])) + '] = -coeffs[' + str(n) + '][1]\n')
+            file_write.write('\n')
+            
+            file_write.write('\t\tMatx = sympy.Matrix((\n')
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                args = '\t\t\t\t\t\t\t('
+                for p in range(len(self.simulation.mechanical_system['Degrees of Freedom']) + 1):
+                    args = args + 'Mat[' + str(n) + ', ' + str(p) + ']'
+                    if p < len(self.simulation.mechanical_system['Degrees of Freedom']):
+                        args = args + ', '
+                args = args + ')'
+                if n < len(self.simulation.mechanical_system['Degrees of Freedom']):
+                    args = args + ','
+                file_write.write(args + '\n')
+            file_write.write('\t\t\t\t\t\t\t))\n')
+            file_write.write('\n')
+            file_write.write('\t\tsecond_derivatives = sympy.solve_linear_system_LU(Matx, [')
+            args = ''
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                args = args + 'sympy.Derivative(degrees_of_freedom[' + str(n) + '], (t, 2))'
+                if n < len(self.simulation.mechanical_system['Degrees of Freedom']) - 1:
+                    args = args + ', '
+            file_write.write(args + '])\n')            
+
+            for n in range(len(self.simulation.mechanical_system['Degrees of Freedom'])):
+                file_write.write('\t\tsecond_derivatives_simplified[sympy.Derivative(degrees_of_freedom[' + str(n) + '], (t, 2))] = second_derivatives[sympy.Derivative(degrees_of_freedom[' + str(n) + '], (t, 2))].simplify()\n')
+            file_write.write('\n')    
+
+            file_write.write('\treturn second_derivatives_simplified')
+
+        sys.path.insert(0, self.simulation.mechanical_system['Path'])
+        imported_module = importlib.import_module('equations_of_motion')
+        return imported_module
+
+class Integrator_Builder():
+    def __init__(self, simulation):
+        self.simulation = simulation
+
+    def build_integrator_module(self):
+        with open(self.simulation.mechanical_system['Path'] + 'integrator.py', 'w') as file_write:
+            file_write.write('import sympy\n')
+            file_write.write('import numpy\n')
+            file_write.write('from scipy.integrate import odeint\n')
+            file_write.write('\n')
+            file_write.write('def integrate_equations_of_motion(simulation):\n')
+            file_write.write('\tt = sympy.symbols(\'t\')')
+            file_write.write('\n')
+
+            file_write.write('\tparameters_names = list(simulation.mechanical_system[\'Parameters\'])\n')
+            parameters_names = list(self.simulation.mechanical_system['Parameters'])
+            index = 0
+            for parameter_name in parameters_names:
+                file_write.write('\t' + str(parameter_name) + ' = parameters_names[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+
+            file_write.write('\tdegrees_of_freedom = list(simulation.mechanical_system[\'Degrees of Freedom\'].values())\n')
+            degrees_of_freedom_names = list(self.simulation.mechanical_system['Degrees of Freedom'])
+            index = 0
+            for degree_of_freedom_name in degrees_of_freedom_names:
+                file_write.write('\t' + str(degree_of_freedom_name) + ' = degrees_of_freedom[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+
+            file_write.write('\tfriction_coefficients_names = list(simulation.mechanical_system[\'Friction Coefficients\'])\n')
+            friction_coefficients_names = list(self.simulation.mechanical_system['Friction Coefficients'])
+            index = 0
+            for friction_coefficient_name in friction_coefficients_names:
+                file_write.write('\t' + str(friction_coefficient_name) + ' = friction_coefficients_names[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+
+            file_write.write('\tdriving_force_coefficients_names = list(simulation.mechanical_system[\'Driving Force Coefficients\'])\n')
+            driving_force_coefficients_names = list(self.simulation.mechanical_system['Driving Force Coefficients'])
+            index = 0
+            for driving_force_coefficient_name in driving_force_coefficients_names:
+                file_write.write('\t' + str(driving_force_coefficient_name) + ' = driving_force_coefficients_names[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')                
+
+            file_write.write('\tvelocities = list(simulation.mechanical_system[\'Velocities\'].values())\n')
+            velocities_names = list(self.simulation.mechanical_system['Velocities'])
+            index = 0
+            for velocity_name in velocities_names:
+                file_write.write('\t' + str(velocity_name) + '_velocity = velocities[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+            file_write.write('\taccelerations = list(simulation.mechanical_system[\'Accelerations\'].values())\n')
+            accelerations_names = list(self.simulation.mechanical_system['Accelerations'])
+            index = 0
+            for acceleration_name in accelerations_names:
+                file_write.write('\t' + str(acceleration_name) + '_acceleration = accelerations[' + str(index) + ']\n')
+                index = index + 1
+            file_write.write('\n')
+
+            degrees_of_freedom_names = list(self.simulation.mechanical_system['Degrees of Freedom'])
+            file_write.write('# convert system of second order ODEs into a system of first order ODEs\n')
+            for index in range(len(degrees_of_freedom_names)):
+                args = 't, '
+                for index1 in range(len(parameters_names)):
+                    args = args +  str(parameters_names[index1]) + ', '
+                for index1 in range(len(friction_coefficients_names)):
+                    args = args +  str(friction_coefficients_names[index1]) + ', '
+                for index1 in range(len(driving_force_coefficients_names)):
+                    args = args +  str(driving_force_coefficients_names[index1]) + ', '
+                for index1 in range(len(degrees_of_freedom_names)):
+                    args = args +  str(degrees_of_freedom_names[index1]) + ', '
+                for index1 in range(len(velocities_names)):
+                    args = args +  str(velocities_names[index1]) + '_velocity'
+                    if index1 < len(velocities_names) - 1:
+                        args = args + ', '
+                file_write.write('\tdz' + str(index + 1) + 'dt_f = sympy.lambdify((' + args + '), simulation.equations_of_motion[' + str(degrees_of_freedom_names[index]) + '_acceleration]' + ')\n')
+                file_write.write('\td' + str(degrees_of_freedom_names[index]) + 'dt_f = sympy.lambdify((' + str(degrees_of_freedom_names[index]) + '_velocity), ' + str(degrees_of_freedom_names[index]) + '_velocity)\n')
+            file_write.write('\n')
+
+            file_write.write('# define solution vector\n')
+            args = 'S, t, '
+            for index in range(len(parameters_names)):
+                args = args +  str(parameters_names[index]) + ', '
+            for index in range(len(friction_coefficients_names)):
+                args = args + str(friction_coefficients_names[index]) + ', '
+            for index in range(len(driving_force_coefficients_names)):
+                args = args + str(driving_force_coefficients_names[index])
+                if index < len(driving_force_coefficients_names) - 1:
+                    args = args + ', '
+            file_write.write('\tdef dSdt(' + args + '):\n')
+
+            args = ''
+            for index in range(len(degrees_of_freedom_names)):
+                args = args + str(degrees_of_freedom_names[index]) + ', z' + str(index + 1)
+                if index < len(degrees_of_freedom_names) - 1:
+                    args = args + ', '
+            file_write.write('\t\t' + args + ' = S\n')
+            file_write.write('\t\treturn [\n')
+            for index in range(len(degrees_of_freedom_names)):
+                file_write.write('\t\t\td' + str(degrees_of_freedom_names[index]) + 'dt_f(z' + str(index + 1) + '),\n')
+                args = 't, '
+                for index1 in range(len(parameters_names)):
+                    args = args + str(parameters_names[index1]) + ', ' 
+                for index1 in range(len(friction_coefficients_names)):
+                    args = args + str(friction_coefficients_names[index1]) + ', ' 
+                for index1 in range(len(driving_force_coefficients_names)):
+                    args = args + str(driving_force_coefficients_names[index1]) + ', '
+                for index1 in range(len(degrees_of_freedom_names)):
+                    args = args + str(degrees_of_freedom_names[index1]) + ', ' 
+                for index1 in range(len(degrees_of_freedom_names)):
+                    args = args + 'z' + str(index1 + 1) 
+                    if index1 < len(degrees_of_freedom_names) - 1:
+                        args = args + ', '
+                file_write.write('\t\t\tdz' + str(index + 1) + 'dt_f(' + args + '),\n')
+            file_write.write('\t\t]\n')
+            file_write.write('\n')
+
+            file_write.write('# integrate equations of motion\n')
+            t_initial_value = self.simulation.integration_parameters['t_initial'] 
+            t_final_value = self.simulation.integration_parameters['t_final'] 
+            iterations_value = self.simulation.integration_parameters['iterations'] 
+
+            file_write.write('\tsampled_times = numpy.linspace(' + str(t_initial_value) + ', ' + str(t_final_value) + ', ' + str(iterations_value) + ')\n')
+            parameters = list(self.simulation.mechanical_system['Parameters'].values())
+            for index in range(len(parameters_names)):
+                file_write.write('\t' + str(parameters_names[index]) + ' = ' + str(parameters[index]) + '\n')
+            friction_coefficients = list(self.simulation.mechanical_system['Friction Coefficients'].values())
+            for index in range(len(friction_coefficients_names)):
+                file_write.write('\t' + str(friction_coefficients_names[index]) + ' = ' + str(friction_coefficients[index]) + '\n')
+            driving_force_coefficients = list(self.simulation.mechanical_system['Driving Force Coefficients'].values())
+            for index in range(len(driving_force_coefficients_names)):
+                file_write.write('\t' + str(driving_force_coefficients_names[index]) + ' = ' + str(driving_force_coefficients[index]) + '\n')
+            file_write.write('\n')
+
+            file_write.write('\ttime_evolution = odeint(dSdt, y0=[')
+            args = ''
+            initial_conditions = list(self.simulation.initial_conditions.values())
+            for index in range(len(initial_conditions)):
+                args = args +  str(initial_conditions[index])
+                if index < len(initial_conditions) - 1:
+                    args = args + ', '
+            file_write.write(args + '], t = sampled_times, args=(')
+
+            args = ''
+            for index in range(len(parameters_names)):
+                args = args +  str(parameters_names[index])
+                args = args + ', '
+            for index in range(len(friction_coefficients_names)):
+                args = args +  str(friction_coefficients_names[index])
+                args = args + ', '
+            for index in range(len(driving_force_coefficients_names)):
+                args = args +  str(driving_force_coefficients_names[index])
+                args = args + ', '
+            file_write.write(args + '))\n')
+
+            file_write.write('\toutput = {\'sampled_times\' : sampled_times, \'time_evolution\': time_evolution}\n')
+
+            '''
+            with open(file_path + 'solution.csv', 'w') as file_write:
+                solution_writer = csv.writer(file_write, delimiter=',', lineterminator='\n')
+                index_i = 0
+                while index_i < iterations:
+                    row = [times[index_i]]
+                    index_d = 0
+                    while index_d < 2 * len(simulation.mechanical_system_info.degrees_of_freedom):
+                        row.append(solution[index_i][index_d])
+                        index_d = index_d + 1 
+        #            solution_writer.writerow([times[index], solution[index][0], solution[index][1], solution[index][2], solution[index][3]])
+                    solution_writer.writerow(row)
+                    index_i = index_i + 1
+            '''
+
+
+            file_write.write('\n')
+            file_write.write('\treturn output')
+
+        sys.path.insert(0, self.simulation.mechanical_system['Path'])
+        imported_module = importlib.import_module('integrator')
+        return imported_module
+
+

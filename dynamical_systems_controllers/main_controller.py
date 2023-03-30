@@ -7,6 +7,7 @@ from .start_controller import StartController
 from .existing_simulations_controller import ExistingSimulationsController
 from .new_simulation_controller import NewSimulationController
 from .system_characteristics_controller import SystemCharacteristicsController
+from .output_controller import OutputController
 
 class Controller:
     def __init__(self, model: Model, view: View) -> None:
@@ -16,12 +17,13 @@ class Controller:
         self.existing_simulations_controller = ExistingSimulationsController(model, view)
         self.new_simulation_controller = NewSimulationController(model, view)
         self.system_characteristics_controller = SystemCharacteristicsController(model, view)
+        self.output_controller = OutputController(model, view)
         self.frame_existing_simulation = self.view.frames['existing_simulations']
 
         for frame_name, frame in self.view.frames.items():
-            frame.bind('<<ShowFrame>>', lambda event, frame_name=frame_name:self.get_data(event, frame_name))
+            frame.bind('<<ShowFrame>>', lambda event, frame_name=frame_name:self._update_frame(event, frame_name))
 
-    def get_data(self, event, frame_name):
+    def _update_frame(self, event, frame_name):
         if frame_name == 'start':
             self.start_controller.clear_systems_list()
             self.start_controller.populate_systems_list()    
@@ -37,7 +39,6 @@ class Controller:
             else:
                 # system is not selected: this happens when the button Create New System is clicked on the Start page
                 self.system_characteristics_controller.clear_system_characteristics()
-#                self.new_simulation_controller.clear_system_diagram()            
             self.system_characteristics_controller.show_diagram()
             self.system_characteristics_controller._change_save_and_run_button_state()   # this always happens
         elif frame_name == 'existing_simulations':
@@ -46,12 +47,13 @@ class Controller:
             self.existing_simulations_controller.replace_system_label()
         elif frame_name == 'new_simulation':
             self.new_simulation_controller.replace_system_label()
-#            self.new_simulation_controller.clear_system_diagram()
+        elif frame_name == 'output':
+            pass
         else:
             print('I need frame_name!')
 
     def start(self) -> None:
-        # Here, you can do operations required before launching the gui, for example,
+        # Here, you can do operations required before launching the gui
         for system in self.model.system.get_list_of_systems():
             self.view.frames['start'].mechanical_systems_listbox.insert('end', system)        
         self.view.switch('start', '')
