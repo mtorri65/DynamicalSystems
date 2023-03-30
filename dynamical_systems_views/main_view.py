@@ -31,7 +31,10 @@ class View:
 
     def switch(self, name: str, title: str) -> None:
         frame = self.frames[name]
-        self.title = vc.title + ' - ' + title
+        if title == '':
+            self.root.title(vc.title)
+        else:
+            self.root.title(vc.title + ' - ' + title)
         frame.tkraise()
         frame.event_generate('<<ShowFrame>>')
        

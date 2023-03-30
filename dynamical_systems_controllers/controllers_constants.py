@@ -1,0 +1,1 @@
+mathematical_functions = ['sin', 'cos', 'sqrt', 'exp']
