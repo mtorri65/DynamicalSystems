@@ -1,0 +1,133 @@
+{
+  "Mechanical System": {
+    "Name": "Double_Pendulum",
+    "Path": "C:\\Users\\E1243377\\Python\\DynamicalSystems\\Mechanical_Systems_Library\\Double_Pendulum\\",
+    "Dimensions": 2,
+    "Particles": 2,
+    "Parameters": {
+      "g": 9.81,
+      "m1": 2.0,
+      "m2": 1.0,
+      "L1": 2.0,
+      "L2": 1.0
+    },
+    "Degrees of Freedom": {
+      "theta1": "theta1",
+      "theta2": "theta2"
+    },
+    "Cartesian Coordinates": {
+      "x1": "L1 * sin(theta1)",
+      "y1": "-L1 * cos(theta1)",
+      "x2": "L1 * sin(theta1) + L2 * sin(theta2)",
+      "y2": "-L1 * cos(theta1) - L2 * cos(theta2)"
+    },
+    "Potential Energy": {
+      "V1": "m1 * g * y1",
+      "V2": "m2 * g * y2"
+    },
+    "Friction Coefficients": {
+      "theta1_friction": 0.0,
+      "theta2_friction": 0.0
+    },
+    "Driving Force Coefficients": {
+      "A_theta1_drive": 0.0,
+      "w_theta1_drive": 0.0,
+      "phi_theta1_drive": 0.0,
+      "A_theta2_drive": 0.0,
+      "w_theta2_drive": 0.0,
+      "phi_theta2_drive": 0.0
+    },
+    "Notes": "jhg"
+  },
+  "Initial Conditions": {
+    "theta1(0)": 1.57,
+    "dtheta1dt(0)": 0.0,
+    "theta2(0)": 0.0,
+    "dtheta2dt(0)": 1.0
+  },
+  "Integration Parameters": {
+    "t_initial": 0.0,
+    "t_final": 1.0,
+    "iterations": 10
+  },
+  "Equations of Motion": {
+    "Derivative(theta1(t), (t, 2))": "(-0.5*L1*m2*sin(2*theta1(t) - 2*theta2(t))*Derivative(theta1(t), t)**2 - 1.0*L2*m2*sin(theta1(t) - theta2(t))*Derivative(theta2(t), t)**2 - 1.0*g*m1*sin(theta1(t)) - 0.5*g*m2*sin(theta1(t) - 2*theta2(t)) - 0.5*g*m2*sin(theta1(t)))/(L1*(m1 - m2*cos(theta1(t) - theta2(t))**2 + m2))",
+    "Derivative(theta2(t), (t, 2))": "1.0*((m1 + m2)*(-L1*sin(theta1(t) - theta2(t))*Derivative(theta1(t), t)**2 + g*sin(theta2(t))) - (1.0*L2*m2*sin(theta1(t) - theta2(t))*Derivative(theta2(t), t)**2 + g*m1*sin(theta1(t)) + g*m2*sin(theta1(t)))*cos(theta1(t) - theta2(t)))/(L2*(-m1 + m2*cos(theta1(t) - theta2(t))**2 - m2))"
+  },
+  "Output": {
+    "sampled_times": [
+      0.0,
+      0.1111111111111111,
+      0.2222222222222222,
+      0.3333333333333333,
+      0.4444444444444444,
+      0.5555555555555556,
+      0.6666666666666666,
+      0.7777777777777777,
+      0.8888888888888888,
+      1.0
+    ],
+    "time_evolution": [
+      [
+        1.57,
+        0.0,
+        0.0,
+        1.0
+      ],
+      [
+        1.538673125833282,
+        -0.5644225566890572,
+        0.11221824376896762,
+        1.038292661670976
+      ],
+      [
+        1.4441066956411408,
+        -1.1424352093159125,
+        0.23879403032026064,
+        1.294651741367726
+      ],
+      [
+        1.2827720230728499,
+        -1.7763544513569922,
+        0.416217774441207,
+        1.9898017364398397
+      ],
+      [
+        1.045508635399014,
+        -2.5012440923907553,
+        0.7003904540819585,
+        3.156489569147402
+      ],
+      [
+        0.7379929565389758,
+        -2.9216432041412674,
+        1.0743439672533968,
+        3.1250828205621066
+      ],
+      [
+        0.4141516714092925,
+        -2.8874983774304064,
+        1.3109338980653433,
+        0.9520250487626861
+      ],
+      [
+        0.0975654919566935,
+        -2.79212549893996,
+        1.2679680113488603,
+        -1.7582939469627659
+      ],
+      [
+        -0.19572666374736614,
+        -2.4119350457532214,
+        0.9204363361259635,
+        -4.4631744093080234
+      ],
+      [
+        -0.4189622503477306,
+        -1.5265768303730856,
+        0.28667808222591296,
+        -6.899836868698604
+      ]
+    ]
+  }
+}

@@ -10,7 +10,7 @@ class ExistingSimulationsController:
     def __init__(self, model: Model, view: View) -> None:
         self.model = model
         self.view = view
-        self.frame = self.view.frames["existing_simulations"]
+        self.frame = self.view.frames['existing_simulations']
         self._bind()
 
     def _bind(self) -> None:

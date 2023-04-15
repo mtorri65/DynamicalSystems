@@ -191,23 +191,24 @@ class SystemCharacteristicsController:
         self.model.simulation.equations_of_motion = equations_of_motion
         self.model.simulation.output = output
 
-        self.model.simulation.save_to_json()
 
     def _run(self):
         self._save()
-        self._sympyfy_mechanical_system()
+        if self.model.simulation.check_if_last_simulation_different(self.model.simulation.get_simulation_folder()):        
+            self.model.simulation.save_to_json()
+            self._sympyfy_mechanical_system()
 
-        equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)
-        equations_of_motion_module = equations_of_motion_builder.build_equations_of_motion_module()
-        self.model.simulation.equations_of_motion = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
-        self.model.simulation.serialize_equations_of_motion()
+            equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)
+            equations_of_motion_module = equations_of_motion_builder.build_equations_of_motion_module()
+            self.model.simulation.equations_of_motion = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
+            self.model.simulation.serialize_equations_of_motion()
 
-        integrator_builder = Integrator_Builder(self.model.simulation)
-        integrator_module = integrator_builder.build_integrator_module()
-        self.model.simulation.output = integrator_module.integrate_equations_of_motion(self.model.simulation)
-        self.model.simulation.serialize_output()
+            integrator_builder = Integrator_Builder(self.model.simulation)
+            integrator_module = integrator_builder.build_integrator_module()
+            self.model.simulation.output = integrator_module.integrate_equations_of_motion(self.model.simulation)
+            self.model.simulation.serialize_output()
 
-        self._display_output()
+        self.view.switch('output', 'output')
 
     def _sympyfy_mechanical_system(self):
         parameters = self.model.simulation.mechanical_system['Parameters']

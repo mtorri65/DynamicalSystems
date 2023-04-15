@@ -56,11 +56,16 @@ class Simulation(ObservableModel):
         self._output = new_output
 
     def save_to_json(self):
-        simulation_json_files_folder = self.mechanical_system['Path'] + 'simulations\\'
-        if not os.path.exists(simulation_json_files_folder):
-            os.makedirs(simulation_json_files_folder)
-        mechanical_system_json_file = simulation_json_files_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
+        simulation_json_files_folder = self.get_simulation_folder()
+        simulation_json_file = self.get_simulation_file()
 
+        if self.check_if_last_simulation_different(simulation_json_files_folder):
+            with open(simulation_json_file, 'w') as f:
+                json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
+                self.new_simulation = os.path.basename(simulation_json_file)
+
+    def check_if_last_simulation_different(self, simulation_json_files_folder):
+        is_last_simulation_different = True
         file_type = r'\*json'
         simulation_json_files_list = glob.glob(simulation_json_files_folder + file_type)
         if simulation_json_files_list:
@@ -70,10 +75,20 @@ class Simulation(ObservableModel):
                 if (most_recent_json_string['Mechanical System'] == self.mechanical_system) and (most_recent_json_string['Initial Conditions'] == self.initial_conditions) and (most_recent_json_string['Integration Parameters'] == self.integration_parameters):
 #                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
                     print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
-                    return
-            with open(mechanical_system_json_file, 'w') as f:
-                json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
-                self.new_simulation = os.path.basename(mechanical_system_json_file)
+                    is_last_simulation_different = False
+
+        return is_last_simulation_different            
+
+    def get_simulation_file(self):
+        simulation_json_files_folder = self.get_simulation_folder()
+        simulation_json_file = simulation_json_files_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
+        return simulation_json_file
+
+    def get_simulation_folder(self):
+        simulation_json_files_folder = self.mechanical_system['Path'] + 'simulations\\'
+        if not os.path.exists(simulation_json_files_folder):
+            os.makedirs(simulation_json_files_folder)
+        return simulation_json_files_folder
 
     def serialize_equations_of_motion(self):
         new_equations_of_motion = {}

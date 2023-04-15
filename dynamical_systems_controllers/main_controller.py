@@ -18,7 +18,6 @@ class Controller:
         self.new_simulation_controller = NewSimulationController(model, view)
         self.system_characteristics_controller = SystemCharacteristicsController(model, view)
         self.output_controller = OutputController(model, view)
-        self.frame_existing_simulation = self.view.frames['existing_simulations']
 
         for frame_name, frame in self.view.frames.items():
             frame.bind('<<ShowFrame>>', lambda event, frame_name=frame_name:self._update_frame(event, frame_name))
@@ -48,7 +47,11 @@ class Controller:
         elif frame_name == 'new_simulation':
             self.new_simulation_controller.replace_system_label()
         elif frame_name == 'output':
-            pass
+            self.output_controller.replace_system_label()
+            self.output_controller.replace_simulation_label()
+            self.output_controller.show_output()
+            self.output_controller.configure_plot_dropdowns()
+            self.output_controller.plot()
         else:
             print('I need frame_name!')
 

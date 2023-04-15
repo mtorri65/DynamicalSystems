@@ -9,6 +9,12 @@ class NewSimulationView(tk.Frame):
         fontsize = str(18)    
         font_parameters = vc.font + fontsize
         self.mechanical_system_label = tk.Label(self, padx=10, pady=10, font= (font_parameters))
+        self.simulation_label = tk.Label(self, padx=10, pady=10, font= (font_parameters))
+
+        fontsize = str(12)    
+        font_parameters = vc.font + fontsize
+        self.graphtype_label = tk.Label(self, padx=10, pady=10, font= (font_parameters))
+
 
         fontsize = str(12)    
         font_parameters = vc.font + fontsize
