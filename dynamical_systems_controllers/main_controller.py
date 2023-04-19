@@ -49,7 +49,7 @@ class Controller:
         elif frame_name == 'output':
             self.output_controller.replace_system_label()
             self.output_controller.replace_simulation_label()
-            self.output_controller.show_output()
+            self.output_controller.show_output_window()
             self.output_controller.configure_plot_dropdowns()
             self.output_controller.plot()
         else:

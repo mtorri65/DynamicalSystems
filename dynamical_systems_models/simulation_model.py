@@ -6,6 +6,7 @@ from json import JSONEncoder
 from PIL import ImageTk, Image
 import sys
 import importlib
+import numpy as np
 
 from .base_model import ObservableModel
 
@@ -89,6 +90,22 @@ class Simulation(ObservableModel):
         if not os.path.exists(simulation_json_files_folder):
             os.makedirs(simulation_json_files_folder)
         return simulation_json_files_folder
+    
+    def get_simulation_data(self, simulation_file_path, x, y):
+        simulation_json = ''
+        with open(self.mechanical_system['Path'] + '\\simulations\\' + simulation_file_path, 'r') as f:
+            simulation_json = json.load(f)
+        simulation_iterations_number = simulation_json['Integration Parameters']['iterations']
+        simulation_output = simulation_json['Output']
+
+        self.x = []
+        self.y = []
+        for time_iteration_step, time_iteration_dynamical_variables_values in simulation_json['Output'].items():
+            self.x.append(float(time_iteration_step))
+            self.y.append(float(time_iteration_dynamical_variables_values['theta1']))
+
+        self.x = np.linspace(0, 15, 100)
+        self.y = np.sin(self.x)
 
     def serialize_equations_of_motion(self):
         new_equations_of_motion = {}
@@ -102,7 +119,7 @@ class Simulation(ObservableModel):
         new_output = {}
         for output_key, output_value in self.output.items():
             new_output_key = output_key
-            new_output_value = output_value.tolist()
+            new_output_value = output_value
             new_output[new_output_key] = new_output_value
         self._save_simulation_to_json(new_output, 'Output')
 
@@ -649,21 +666,45 @@ class Integrator_Builder():
                 args = args + ', '
             file_write.write(args + '))\n')
 
-            file_write.write('\toutput = {\'sampled_times\' : sampled_times, \'time_evolution\': time_evolution}\n')
+            file_write.write('\ttime_evolution_list = []\n')
+            file_write.write('\tindex = 0\n')
+            file_write.write('\tfor time_evolution_step in time_evolution:\n')
+            file_write.write('\t\ttime_evolution_step_list = time_evolution_step.tolist()\n')
+            file_write.write('\t\ttime_evolution_step_list.insert(0, sampled_times[index])\n')
+            file_write.write('\t\ttime_evolution_list.append(time_evolution_step_list)\n')
+            file_write.write('\t\tindex = index + 1\n\n')
+
+##            file_write.write('\toutput = {\'time_evolution\': time_evolution_list}\n')
+
+            file_write.write('\toutput = {}\n')
+            file_write.write('\toutput_step = {}\n')
+            file_write.write('\tfor sampled_time in sampled_times:\n')
+            file_write.write('\t\tfor time_evolution_step in time_evolution:\n')
+            file_write.write('\t\t\tindex = 0\n')
+            file_write.write('\t\t\tfor degree_of_freedom in simulation.mechanical_system[\'Degrees of Freedom\']:\n')
+            file_write.write('\t\t\t\tstep_dynamic_variable_name = str(degree_of_freedom)\n')
+            file_write.write('\t\t\t\toutput_step[step_dynamic_variable_name] = time_evolution_step[index]\n')
+            file_write.write('\t\t\t\tstep_dynamic_variable_name = \'v_\' + str(degree_of_freedom)\n')
+            file_write.write('\t\t\t\toutput_step[step_dynamic_variable_name] = time_evolution_step[index + 1]\n')
+            file_write.write('\t\t\t\tindex = index + 2\n')
+            file_write.write('\t\t\toutput[str(sampled_time)] = output_step\n')
+
 
             '''
-            with open(file_path + 'solution.csv', 'w') as file_write:
-                solution_writer = csv.writer(file_write, delimiter=',', lineterminator='\n')
-                index_i = 0
-                while index_i < iterations:
-                    row = [times[index_i]]
-                    index_d = 0
-                    while index_d < 2 * len(simulation.mechanical_system_info.degrees_of_freedom):
-                        row.append(solution[index_i][index_d])
-                        index_d = index_d + 1 
-        #            solution_writer.writerow([times[index], solution[index][0], solution[index][1], solution[index][2], solution[index][3]])
-                    solution_writer.writerow(row)
-                    index_i = index_i + 1
+	output = {}
+	output_step = {}
+	for sampled_time in sampled_times:
+		for time_evolution_step in time_evolution:
+			index = 0
+			for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
+				step_dynamic_variable_name = str(degree_of_freedom)
+				output_step[step_dynamic_variable_name] = time_evolution_step[index]
+				step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
+				output_step[step_dynamic_variable_name] = time_evolution_step[index + 1]
+				index = index + 2
+			output[str(sampled_time)] = output_step
+
+
             '''
 
 
