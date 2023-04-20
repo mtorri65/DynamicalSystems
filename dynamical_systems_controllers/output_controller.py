@@ -1,5 +1,8 @@
 import json
 import numpy as np
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 from dynamical_systems_models.main_model import Model
 from dynamical_systems_views.main_view import View
@@ -62,7 +65,8 @@ class OutputController:
 
         self.y_axis_variables = []
         for x_axis_variable in self.degrees_of_freedom:
-            self.y_axis_variables.append('p_' + str(x_axis_variable))
+#            self.y_axis_variables.append('p_' + str(x_axis_variable))
+            self.y_axis_variables.append('v_' + str(x_axis_variable))
 
         self.frame.x_axis_combo.config(values=self.x_axis_variables_t)
         self.frame.x_axis_combo.current(0)
@@ -77,21 +81,25 @@ class OutputController:
         if self.x_axis_degree_of_freedom not in self.x_axis_variables_t:
             self.x_axis_degree_of_freedom = 't'
         if self.y_axis_degree_of_freedom not in self.y_axis_variables:
-            self.y_axis_degree_of_freedom = 'p_' + self.degrees_of_freedom[0]
-        self.frame.ax.set_xlabel(self.x_axis_degree_of_freedom)
-        self.frame.ax.set_ylabel(self.y_axis_degree_of_freedom)
+#            self.y_axis_degree_of_freedom = 'p_' + self.degrees_of_freedom[0]
+            self.y_axis_degree_of_freedom = 'v_' + self.degrees_of_freedom[0]
         
         self.model.simulation.get_simulation_data(self.model.system.selected_simulation, self.x_axis_degree_of_freedom, self.y_axis_degree_of_freedom)
+        
+        if self.frame.canvas: self.frame.canvas.get_tk_widget().pack_forget()
+
+        plt.style.use(['science', 'notebook', 'grid'])
+        height = self.frame.winfo_screenheight()
+        width = self.frame.winfo_screenmmwidth()
+        self.frame.fig = Figure(figsize=(height/96, width/96), dpi=100)
+        self.frame.ax = self.frame.fig.add_subplot()
+
+        if self.frame.canvas: self.frame.canvas.get_tk_widget().pack_forget()    
+
         self.frame.ax.plot(self.model.simulation.x , self.model.simulation.y, '-', color='green', lw = 0.7, label = 'test')
+        self.frame.ax.set_xlabel(self.x_axis_degree_of_freedom)
+        self.frame.ax.set_ylabel(self.y_axis_degree_of_freedom)
+
+        self.frame.canvas = FigureCanvasTkAgg(self.frame.fig, master=self.frame.plot_frame)  
         self.frame.canvas.draw()
-
-
-'''
-    def replace_system_label(self):
-        self.frame.mechanical_system_label.config(text = self.model.system.selected_system.replace('_',' '))
-
-    def clear_system_diagram(self):
-        p = self.model.system.mechanical_systems_diagram_path.rsplit("\\", 1)[0]
-#        self.model.system.test_diagram(p)
-        self.model.system.set_mechanical_system_diagram_path(p)
-'''
+        self.frame.canvas.get_tk_widget().pack()        

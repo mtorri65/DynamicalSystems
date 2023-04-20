@@ -52,7 +52,7 @@ def integrate_equations_of_motion(simulation):
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 1.0, 10)
+	sampled_times = numpy.linspace(0.0, 1.0, 11)
 	g = 9.81
 	m1 = 2.0
 	m2 = 1.0
@@ -68,25 +68,19 @@ def integrate_equations_of_motion(simulation):
 	phi_theta2_drive = 0.0
 
 	time_evolution = odeint(dSdt, y0=[1.57, 0.0, 0.0, 1.0], t = sampled_times, args=(g, m1, m2, L1, L2, theta1_friction, theta2_friction, A_theta1_drive, w_theta1_drive, phi_theta1_drive, A_theta2_drive, w_theta2_drive, phi_theta2_drive, ))
-	time_evolution_list = []
-	index = 0
-	for time_evolution_step in time_evolution:
-		time_evolution_step_list = time_evolution_step.tolist()
-		time_evolution_step_list.insert(0, sampled_times[index])
-		time_evolution_list.append(time_evolution_step_list)
-		index = index + 1
 
 	output = {}
 	output_step = {}
+	index_step = 0
 	for sampled_time in sampled_times:
-		for time_evolution_step in time_evolution:
-			index = 0
-			for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
-				step_dynamic_variable_name = str(degree_of_freedom)
-				output_step[step_dynamic_variable_name] = time_evolution_step[index]
-				step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
-				output_step[step_dynamic_variable_name] = time_evolution_step[index + 1]
-				index = index + 2
-			output[str(sampled_time)] = output_step
+		index_degree = 0
+		for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
+			step_dynamic_variable_name = str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]
+			step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]
+			index_degree = index_degree + 2
+		output[str(sampled_time)] = output_step.copy()
+		index_step = index_step + 1
 
 	return output

@@ -91,21 +91,19 @@ class Simulation(ObservableModel):
             os.makedirs(simulation_json_files_folder)
         return simulation_json_files_folder
     
-    def get_simulation_data(self, simulation_file_path, x, y):
+    def get_simulation_data(self, simulation_file_path, x_axis_variable, y_axis_variable):
         simulation_json = ''
         with open(self.mechanical_system['Path'] + '\\simulations\\' + simulation_file_path, 'r') as f:
             simulation_json = json.load(f)
-        simulation_iterations_number = simulation_json['Integration Parameters']['iterations']
-        simulation_output = simulation_json['Output']
 
         self.x = []
         self.y = []
         for time_iteration_step, time_iteration_dynamical_variables_values in simulation_json['Output'].items():
-            self.x.append(float(time_iteration_step))
-            self.y.append(float(time_iteration_dynamical_variables_values['theta1']))
-
-        self.x = np.linspace(0, 15, 100)
-        self.y = np.sin(self.x)
+            if x_axis_variable == 't':
+                self.x.append(float(time_iteration_step))
+            else:
+                self.x.append(float(time_iteration_dynamical_variables_values[x_axis_variable]))
+            self.y.append(float(time_iteration_dynamical_variables_values[y_axis_variable]))
 
     def serialize_equations_of_motion(self):
         new_equations_of_motion = {}
@@ -664,49 +662,47 @@ class Integrator_Builder():
             for index in range(len(driving_force_coefficients_names)):
                 args = args +  str(driving_force_coefficients_names[index])
                 args = args + ', '
-            file_write.write(args + '))\n')
+            file_write.write(args + '))\n\n')
 
-            file_write.write('\ttime_evolution_list = []\n')
-            file_write.write('\tindex = 0\n')
-            file_write.write('\tfor time_evolution_step in time_evolution:\n')
-            file_write.write('\t\ttime_evolution_step_list = time_evolution_step.tolist()\n')
-            file_write.write('\t\ttime_evolution_step_list.insert(0, sampled_times[index])\n')
-            file_write.write('\t\ttime_evolution_list.append(time_evolution_step_list)\n')
-            file_write.write('\t\tindex = index + 1\n\n')
+#            file_write.write('\ttime_evolution_list = []\n')
+#            file_write.write('\tindex = 0\n')
+#            file_write.write('\tfor time_evolution_step in time_evolution:\n')
+#            file_write.write('\t\ttime_evolution_step_list = time_evolution_step.tolist()\n')
+#            file_write.write('\t\ttime_evolution_step_list.insert(0, sampled_times[index])\n')
+#            file_write.write('\t\ttime_evolution_list.append(time_evolution_step_list)\n')
+#            file_write.write('\t\tindex = index + 1\n\n')
 
 ##            file_write.write('\toutput = {\'time_evolution\': time_evolution_list}\n')
 
             file_write.write('\toutput = {}\n')
             file_write.write('\toutput_step = {}\n')
+            file_write.write('\tindex_step = 0\n')
             file_write.write('\tfor sampled_time in sampled_times:\n')
-            file_write.write('\t\tfor time_evolution_step in time_evolution:\n')
-            file_write.write('\t\t\tindex = 0\n')
-            file_write.write('\t\t\tfor degree_of_freedom in simulation.mechanical_system[\'Degrees of Freedom\']:\n')
-            file_write.write('\t\t\t\tstep_dynamic_variable_name = str(degree_of_freedom)\n')
-            file_write.write('\t\t\t\toutput_step[step_dynamic_variable_name] = time_evolution_step[index]\n')
-            file_write.write('\t\t\t\tstep_dynamic_variable_name = \'v_\' + str(degree_of_freedom)\n')
-            file_write.write('\t\t\t\toutput_step[step_dynamic_variable_name] = time_evolution_step[index + 1]\n')
-            file_write.write('\t\t\t\tindex = index + 2\n')
-            file_write.write('\t\t\toutput[str(sampled_time)] = output_step\n')
-
+            file_write.write('\t\tindex_degree = 0\n')
+            file_write.write('\t\tfor degree_of_freedom in simulation.mechanical_system[\'Degrees of Freedom\']:\n')
+            file_write.write('\t\t\tstep_dynamic_variable_name = str(degree_of_freedom)\n')
+            file_write.write('\t\t\toutput_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]\n')
+            file_write.write('\t\t\tstep_dynamic_variable_name = \'v_\' + str(degree_of_freedom)\n')
+            file_write.write('\t\t\toutput_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]\n')
+            file_write.write('\t\t\tindex_degree = index_degree + 2\n')
+            file_write.write('\t\toutput[str(sampled_time)] = output_step.copy()\n')
+            file_write.write('\t\tindex_step = index_step + 1\n')
 
             '''
 	output = {}
 	output_step = {}
+	index_step = 0
 	for sampled_time in sampled_times:
-		for time_evolution_step in time_evolution:
-			index = 0
-			for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
-				step_dynamic_variable_name = str(degree_of_freedom)
-				output_step[step_dynamic_variable_name] = time_evolution_step[index]
-				step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
-				output_step[step_dynamic_variable_name] = time_evolution_step[index + 1]
-				index = index + 2
-			output[str(sampled_time)] = output_step
-
-
+		index_degree = 0
+		for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
+			step_dynamic_variable_name = str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]
+			step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]
+			index_degree = index_degree + 2
+		output[str(sampled_time)] = output_step.copy()
+		index_step = index_step + 1
             '''
-
 
             file_write.write('\n')
             file_write.write('\treturn output')
