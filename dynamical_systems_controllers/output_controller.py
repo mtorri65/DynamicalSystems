@@ -25,6 +25,10 @@ class OutputController:
 
     def _select_x_degree_of_freedom(self, event):
         self.x_axis_degree_of_freedom = event.widget.get()
+        self.y_axis_variables = self.y_axis_variables_all.copy()        
+        if self.x_axis_degree_of_freedom != 't':
+            self.y_axis_variables.remove(self.x_axis_degree_of_freedom)        
+        self.frame.y_axis_combo.config(values=self.y_axis_variables, state='normal')
         self.plot()
 
     def _select_y_degree_of_freedom(self, event):
@@ -55,6 +59,7 @@ class OutputController:
     def configure_plot_dropdowns(self):
         self.frame.graph_type_combo.config(values=['2D', '3D'])
         self.frame.graph_type_combo.current(0)
+        print('configure_plot_dropdowns')
 
         self.x_axis_variables = list(self.model.simulation.mechanical_system['Degrees of Freedom'].values())
         self.degrees_of_freedom = []
@@ -66,10 +71,13 @@ class OutputController:
         self.y_axis_variables = []
         for x_axis_variable in self.degrees_of_freedom:
 #            self.y_axis_variables.append('p_' + str(x_axis_variable))
+            self.y_axis_variables.append(str(x_axis_variable))
             self.y_axis_variables.append('v_' + str(x_axis_variable))
+        self.y_axis_variables_all = self.y_axis_variables.copy()
 
         self.frame.x_axis_combo.config(values=self.x_axis_variables_t)
         self.frame.x_axis_combo.current(0)
+#        self.frame.y_axis_combo.config(values=self.y_axis_variables, state='disabled')
         self.frame.y_axis_combo.config(values=self.y_axis_variables)
         self.frame.y_axis_combo.current(0)
         self.frame.z_axis_combo.config(values=['t', 'z1', 'z2'])
@@ -82,7 +90,7 @@ class OutputController:
             self.x_axis_degree_of_freedom = 't'
         if self.y_axis_degree_of_freedom not in self.y_axis_variables:
 #            self.y_axis_degree_of_freedom = 'p_' + self.degrees_of_freedom[0]
-            self.y_axis_degree_of_freedom = 'v_' + self.degrees_of_freedom[0]
+            self.y_axis_degree_of_freedom = self.degrees_of_freedom[0]
         
         self.model.simulation.get_simulation_data(self.model.system.selected_simulation, self.x_axis_degree_of_freedom, self.y_axis_degree_of_freedom)
         
