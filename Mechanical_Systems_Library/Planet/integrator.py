@@ -50,7 +50,7 @@ def integrate_equations_of_motion(simulation):
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 12.56, 206)
+	sampled_times = numpy.linspace(0.0, 12.56, 205)
 	G = 1.0
 	M = 1.0
 	m1 = 3e-06
@@ -65,28 +65,18 @@ def integrate_equations_of_motion(simulation):
 
 	time_evolution = odeint(dSdt, y0=[1.7, 0.0, 0.0, 0.353], t = sampled_times, args=(G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, ))
 
-##	output = {'sampled_times' : sampled_times, 'time_evolution': time_evolution}
-
-#	simulation_output = []
-#	for sampled_time in sampled_times:
-#		simulation_output.append(sampled_time)
-	
-#	for simulation_output_step, index in enumerate(simulation_output):
-#		simulation_output[index].append(simulation_output_step)
-
-#	output = {'': simulation_output}	
-
 	output = {}
 	output_step = {}
+	index_step = 0
 	for sampled_time in sampled_times:
-		for simulation_output_step in time_evolution:
-			for step_dynamic_variable_value, index in enumerate(simulation_output_step):
-				for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
-					if index // 2 == 0:
-						step_dynamic_variable_name = simulation.mechanical_system['Degrees of Freedom'][str(degree_of_freedom)]
-					if index // 2 == 1:
-						step_dynamic_variable_name = 'v_' + simulation.mechanical_system['Degrees of Freedom'][str(degree_of_freedom)]				
-				output_step[step_dynamic_variable_name] = step_dynamic_variable_value
-			output[str(sampled_time)] = output_step
+		index_degree = 0
+		for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
+			step_dynamic_variable_name = str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]
+			step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]
+			index_degree = index_degree + 2
+		output[str(sampled_time)] = output_step.copy()
+		index_step = index_step + 1
 
 	return output

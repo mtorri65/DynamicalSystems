@@ -56,14 +56,12 @@ class Simulation(ObservableModel):
     def output(self, new_output):
         self._output = new_output
 
-    def save_to_json(self):
-        simulation_json_files_folder = self.get_simulation_folder()
-        simulation_json_file = self.get_simulation_file()
+    def save_to_json(self, json_file_folder):
+        simulation_json_file = self.get_simulation_file(json_file_folder)
 
-        if self.check_if_last_simulation_different(simulation_json_files_folder):
-            with open(simulation_json_file, 'w') as f:
-                json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
-                self.new_simulation = os.path.basename(simulation_json_file)
+        with open(simulation_json_file, 'w') as f:
+            json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
+            self.new_simulation = os.path.basename(simulation_json_file)
 
     def check_if_last_simulation_different(self, simulation_json_files_folder):
         is_last_simulation_different = True
@@ -80,9 +78,8 @@ class Simulation(ObservableModel):
 
         return is_last_simulation_different            
 
-    def get_simulation_file(self):
-        simulation_json_files_folder = self.get_simulation_folder()
-        simulation_json_file = simulation_json_files_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
+    def get_simulation_file(self, json_file_folder):
+        simulation_json_file = json_file_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
         return simulation_json_file
 
     def get_simulation_folder(self):
@@ -93,7 +90,7 @@ class Simulation(ObservableModel):
     
     def get_simulation_data(self, simulation_file_path, x_axis_variable, y_axis_variable):
         simulation_json = ''
-        with open(self.mechanical_system['Path'] + '\\simulations\\' + simulation_file_path, 'r') as f:
+        with open(self.mechanical_system['Path'] + 'simulations\\' + simulation_file_path, 'r') as f:
             simulation_json = json.load(f)
 
         self.x = []

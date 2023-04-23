@@ -191,11 +191,14 @@ class SystemCharacteristicsController:
         self.model.simulation.equations_of_motion = equations_of_motion
         self.model.simulation.output = output
 
+        self.model.system.selected_system = mechanical_system['Name']
 
     def _run(self):
         self._save()
-        if self.model.simulation.check_if_last_simulation_different(self.model.simulation.get_simulation_folder()):        
-            self.model.simulation.save_to_json()
+        simulation_json_files_folder = self.model.simulation.get_simulation_folder()
+        if self.model.simulation.check_if_last_simulation_different(simulation_json_files_folder):        
+            self.model.simulation.save_to_json(simulation_json_files_folder)
+            self.model.system.selected_simulation = self.model.simulation.new_simulation
             self._sympyfy_mechanical_system()
 
             equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)

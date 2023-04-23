@@ -29,10 +29,12 @@ class OutputController:
         if self.x_axis_degree_of_freedom != 't':
             self.y_axis_variables.remove(self.x_axis_degree_of_freedom)        
         self.frame.y_axis_combo.config(values=self.y_axis_variables, state='normal')
+        print("I am in _select_x_degree_of_freedom")
         self.plot()
 
     def _select_y_degree_of_freedom(self, event):
         self.y_axis_degree_of_freedom = event.widget.get()
+        print("I am in _select_y_degree_of_freedom")
         self.plot()
 
 #    def _switch_start(self) -> None:
@@ -59,7 +61,6 @@ class OutputController:
     def configure_plot_dropdowns(self):
         self.frame.graph_type_combo.config(values=['2D', '3D'])
         self.frame.graph_type_combo.current(0)
-        print('configure_plot_dropdowns')
 
         self.x_axis_variables = list(self.model.simulation.mechanical_system['Degrees of Freedom'].values())
         self.degrees_of_freedom = []
@@ -77,7 +78,6 @@ class OutputController:
 
         self.frame.x_axis_combo.config(values=self.x_axis_variables_t)
         self.frame.x_axis_combo.current(0)
-#        self.frame.y_axis_combo.config(values=self.y_axis_variables, state='disabled')
         self.frame.y_axis_combo.config(values=self.y_axis_variables)
         self.frame.y_axis_combo.current(0)
         self.frame.z_axis_combo.config(values=['t', 'z1', 'z2'])
