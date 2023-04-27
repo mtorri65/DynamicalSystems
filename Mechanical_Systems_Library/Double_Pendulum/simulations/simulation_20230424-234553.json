@@ -1,0 +1,131 @@
+{
+  "Mechanical System": {
+    "Name": "Double_Pendulum",
+    "Path": "C:\\Users\\E1243377\\Python\\DynamicalSystems\\Mechanical_Systems_Library\\Double_Pendulum\\",
+    "Dimensions": 2,
+    "Particles": 2,
+    "Parameters": {
+      "g": 9.81,
+      "m1": 2.0,
+      "m2": 1.0,
+      "L1": 2.0,
+      "L2": 1.0
+    },
+    "Degrees of Freedom": {
+      "theta1": "theta1",
+      "theta2": "theta2"
+    },
+    "Cartesian Coordinates": {
+      "x1": "L1 * sin(theta1)",
+      "y1": "-L1 * cos(theta1)",
+      "x2": "L1 * sin(theta1) + L2 * sin(theta2)",
+      "y2": "-L1 * cos(theta1) - L2 * cos(theta2)"
+    },
+    "Potential Energy": {
+      "V1": "m1 * g * y1",
+      "V2": "m2 * g * y2"
+    },
+    "Friction Coefficients": {
+      "theta1_friction": 0.0,
+      "theta2_friction": 0.0
+    },
+    "Driving Force Coefficients": {
+      "A_theta1_drive": 0.0,
+      "w_theta1_drive": 0.0,
+      "phi_theta1_drive": 0.0,
+      "A_theta2_drive": 0.0,
+      "w_theta2_drive": 0.0,
+      "phi_theta2_drive": 0.0
+    },
+    "Notes": "jhg"
+  },
+  "Initial Conditions": {
+    "theta1(0)": 1.57,
+    "dtheta1dt(0)": 0.0,
+    "theta2(0)": 0.0,
+    "dtheta2dt(0)": 1.0
+  },
+  "Integration Parameters": {
+    "t_initial": 0.0,
+    "t_final": 1.0,
+    "iterations": 12
+  },
+  "Equations of Motion": {
+    "Derivative(theta1(t), (t, 2))": "(-0.5*L1*m2*sin(2*theta1(t) - 2*theta2(t))*Derivative(theta1(t), t)**2 - 1.0*L2*m2*sin(theta1(t) - theta2(t))*Derivative(theta2(t), t)**2 - 1.0*g*m1*sin(theta1(t)) - 0.5*g*m2*sin(theta1(t) - 2*theta2(t)) - 0.5*g*m2*sin(theta1(t)))/(L1*(m1 - m2*cos(theta1(t) - theta2(t))**2 + m2))",
+    "Derivative(theta2(t), (t, 2))": "1.0*((m1 + m2)*(-L1*sin(theta1(t) - theta2(t))*Derivative(theta1(t), t)**2 + g*sin(theta2(t))) - (1.0*L2*m2*sin(theta1(t) - theta2(t))*Derivative(theta2(t), t)**2 + g*m1*sin(theta1(t)) + g*m2*sin(theta1(t)))*cos(theta1(t) - theta2(t)))/(L2*(-m1 + m2*cos(theta1(t) - theta2(t))**2 - m2))"
+  },
+  "Output": {
+    "0.0": {
+      "theta1": 1.57,
+      "v_theta1": 0.0,
+      "theta2": 0.0,
+      "v_theta2": 1.0
+    },
+    "0.09090909090909091": {
+      "theta1": 1.5490351433604705,
+      "v_theta1": -0.46146715866210575,
+      "theta2": 0.09142369726072541,
+      "v_theta2": 1.0214555182889673
+    },
+    "0.18181818181818182": {
+      "theta1": 1.4859312037604544,
+      "v_theta1": -0.9288083152389963,
+      "theta2": 0.18933507601103433,
+      "v_theta2": 1.16236641318519
+    },
+    "0.2727272727272727": {
+      "theta1": 1.3794647331458276,
+      "v_theta1": -1.4197351570330439,
+      "theta2": 0.31003087070726676,
+      "v_theta2": 1.5432936723437645
+    },
+    "0.36363636363636365": {
+      "theta1": 1.2260704789878596,
+      "v_theta1": -1.9674436152832486,
+      "theta2": 0.4807814033995121,
+      "v_theta2": 2.2783962715452426
+    },
+    "0.4545454545454546": {
+      "theta1": 1.0199235144606293,
+      "v_theta1": -2.564171898515473,
+      "theta2": 0.7327615957850571,
+      "v_theta2": 3.2512826819080276
+    },
+    "0.5454545454545454": {
+      "theta1": 0.7674592143929899,
+      "v_theta1": -2.9118908393903866,
+      "theta2": 1.0421561113634341,
+      "v_theta2": 3.2445526452612246
+    },
+    "0.6363636363636364": {
+      "theta1": 0.5019116017482662,
+      "v_theta1": -2.9047737796752777,
+      "theta2": 1.271601534322103,
+      "v_theta2": 1.6375907486028594
+    },
+    "0.7272727272727273": {
+      "theta1": 0.24022082659757538,
+      "v_theta1": -2.8500211324671727,
+      "theta2": 1.3249815294259961,
+      "v_theta2": -0.502586303894532
+    },
+    "0.8181818181818182": {
+      "theta1": -0.01363915637499874,
+      "v_theta1": -2.7046951630132625,
+      "theta2": 1.1765724115733875,
+      "v_theta2": -2.7639019814085017
+    },
+    "0.9090909090909092": {
+      "theta1": -0.24324071305022057,
+      "v_theta1": -2.288881089713237,
+      "theta2": 0.8255701615574168,
+      "v_theta2": -4.926846137746765
+    },
+    "1.0": {
+      "theta1": -0.41896225034672335,
+      "v_theta1": -1.5265768308703938,
+      "theta2": 0.28667808242420056,
+      "v_theta2": -6.899836868672215
+    }
+  }
+}

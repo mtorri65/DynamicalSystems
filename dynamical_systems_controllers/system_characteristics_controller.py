@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 import sympy
+from sympy.parsing.sympy_parser import parse_expr
 
 from dynamical_systems_models.main_model import Model
 from dynamical_systems_models.simulation_model import Simulation
@@ -196,19 +197,27 @@ class SystemCharacteristicsController:
     def _run(self):
         self._save()
         simulation_json_files_folder = self.model.simulation.get_simulation_folder()
-        if self.model.simulation.check_if_last_simulation_different(simulation_json_files_folder):        
+        equations_of_motion_are_different, initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = self.model.simulation.previous_simulation_is_different(simulation_json_files_folder, 'most_recent')
+        if equations_of_motion_are_different or initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist:        
             self.model.simulation.save_to_json(simulation_json_files_folder)
             self.model.system.selected_simulation = self.model.simulation.new_simulation
             self._sympyfy_mechanical_system()
 
-            equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)
-            equations_of_motion_module = equations_of_motion_builder.build_equations_of_motion_module()
-            self.model.simulation.equations_of_motion = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
+            if equations_of_motion_are_different:
+                equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)
+                equations_of_motion_module = equations_of_motion_builder.build_equations_of_motion_module()
+                self.model.simulation.equations_of_motion = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
+            else:
+                self.model.simulation.equations_of_motion = self.model.simulation.get_equations_of_motion_from_previous_simulation(simulation_json_files_folder)
+                self._sympyfy_equations_of_motion()
             self.model.simulation.serialize_equations_of_motion()
 
-            integrator_builder = Integrator_Builder(self.model.simulation)
-            integrator_module = integrator_builder.build_integrator_module()
-            self.model.simulation.output = integrator_module.integrate_equations_of_motion(self.model.simulation)
+            if initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist:
+                integrator_builder = Integrator_Builder(self.model.simulation)
+                integrator_module = integrator_builder.build_integrator_module()
+                self.model.simulation.output = integrator_module.integrate_equations_of_motion(self.model.simulation)
+            else:
+                self.model.simulation.get_output_from_previous_simulation(simulation_json_files_folder)
             self.model.simulation.serialize_output()
 
         self.view.switch('output', 'output')
@@ -284,5 +293,12 @@ class SystemCharacteristicsController:
             new_driving_force_coefficients[new_driving_force_coefficient_name] = driving_force_coefficient_value
         self.model.simulation.mechanical_system['Driving Force Coefficients'] = new_driving_force_coefficients
 
-    def _display_output(self):
-        pass
+    def _sympyfy_equations_of_motion(self):
+        equations_of_motion = self.model.simulation.equations_of_motion
+        new_equations_of_motion = {}
+        for equation_of_motion_name, equation_of_motion_value in equations_of_motion.items():
+            new_equation_of_motion_name = sympy.sympify(equation_of_motion_name)
+            new_equations_of_motion[new_equation_of_motion_name] = parse_expr(equation_of_motion_value)
+        self.model.simulation.equations_of_motion = new_equations_of_motion
+
+

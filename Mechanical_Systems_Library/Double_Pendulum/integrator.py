@@ -52,7 +52,8 @@ def integrate_equations_of_motion(simulation):
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 1.0, 102)
+	sampled_times = numpy.zeros(600)
+	sampled_times = numpy.linspace(0.0, 6.0, 600)
 	g = 9.81
 	m1 = 2.0
 	m2 = 1.0

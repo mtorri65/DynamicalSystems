@@ -38,10 +38,10 @@ def integrate_equations_of_motion(simulation):
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 6.28, 101)
+	sampled_times = numpy.linspace(0.0, 90.0, 1001)
 	k = 1.0
 	m1 = 1.0
-	x_friction = 0.0
+	x_friction = 1.0
 	A_x_drive = 0.0
 	w_x_drive = 0.0
 	phi_x_drive = 0.0

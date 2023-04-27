@@ -102,7 +102,7 @@ class OutputController:
         self.frame.fig = Figure(figsize=(height/96, width/96), dpi=100)
         self.frame.ax = self.frame.fig.add_subplot()
 
-        if self.frame.canvas: self.frame.canvas.get_tk_widget().pack_forget()    
+#        if self.frame.canvas: self.frame.canvas.get_tk_widget().pack_forget()    
 
         self.frame.ax.plot(self.model.simulation.x , self.model.simulation.y, '-', color='green', lw = 0.7, label = 'test')
         self.frame.ax.set_xlabel(self.x_axis_degree_of_freedom)
