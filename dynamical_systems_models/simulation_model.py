@@ -63,20 +63,52 @@ class Simulation(ObservableModel):
             json.dump(self, f, cls=Simulation_Encoder, indent=4, separators=(',',': '))
             self.new_simulation = os.path.basename(simulation_json_file)
 
-    def check_if_last_simulation_different(self, simulation_json_files_folder):
-        is_last_simulation_different = True
+    def get_equations_of_motion_from_previous_simulation(self, simulation_file_folder):
+        recent_simulation_file = self.get_recent_simulation_file(simulation_file_folder, 'second_most_recent')
+        equations_of_motion = {}
+        if recent_simulation_file['Equations of Motion']:
+            equations_of_motion = recent_simulation_file['Equations of Motion']
+        return equations_of_motion
+    
+    def get_output_from_previous_simulation(self, simulation_file_folder):
+        most_recent_simulation_file = self.get_recent_simulation_file(simulation_file_folder, 'second_most_recent')
+        if most_recent_simulation_file['Output']:
+            output = most_recent_simulation_file['Output']
+        return output
+
+    def previous_simulation_is_different(self, simulation_json_files_folder, position_in_sorted_list):
+        initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = True
+        equations_of_motion_are_different = True
+        recent_json_string = self.get_recent_simulation_file(simulation_json_files_folder, position_in_sorted_list)
+        if (recent_json_string['Mechanical System'] == self.mechanical_system) and recent_json_string['Equations of Motion']:
+            equations_of_motion_are_different = False
+        if (recent_json_string['Initial Conditions'] == self.initial_conditions) and (recent_json_string['Integration Parameters'] == self.integration_parameters) and recent_json_string['Output']:
+#                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
+            print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
+            initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = False
+        return equations_of_motion_are_different, initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist            
+    
+    def get_recent_simulation_file(self, simulation_json_files_folder, position_in_sorted_list):
         file_type = r'\*json'
         simulation_json_files_list = glob.glob(simulation_json_files_folder + file_type)
-        if simulation_json_files_list:
-            most_recent_file = max(simulation_json_files_list, key=os.path.getctime)
-            with open(most_recent_file, 'r') as f:
-                most_recent_json_string = json.load(f)
-                if (most_recent_json_string['Mechanical System'] == self.mechanical_system) and (most_recent_json_string['Initial Conditions'] == self.initial_conditions) and (most_recent_json_string['Integration Parameters'] == self.integration_parameters):
-#                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
-                    print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
-                    is_last_simulation_different = False
+        index = 0
+        if position_in_sorted_list == 'most_recent':
+            index = -1
+        elif position_in_sorted_list == 'second_most_recent':
+            index = -2
+        else:
+            raise Exception("position_in_sorted list must be either most_recent or second_most_recent")
 
-        return is_last_simulation_different            
+        if simulation_json_files_list:
+#            most_recent_file = max(simulation_json_files_list, key=os.path.getmtime)
+            sorted_files = sorted(simulation_json_files_list, key=os.path.getmtime)
+#            with open(most_recent_file, 'r') as f:
+#                most_recent_json_string = json.load(f)
+            with open(sorted_files[index], 'r') as f:
+                recent_json_string = json.load(f)
+        
+        return recent_json_string
+
 
     def get_simulation_file(self, json_file_folder):
         simulation_json_file = json_file_folder + 'simulation_' + time.strftime('%Y%m%d-%H%M%S') + '.json'
@@ -153,20 +185,6 @@ class Simulation_Encoder(JSONEncoder):
                 degrees_of_freedom_json[degree_of_freedom_name_json] = degree_of_freedom_value_json
             mechanical_system['Degrees of Freedom'] = degrees_of_freedom_json
 
-#            
-#            velocities_json = {}
-#            for velocity_name, velocity_value in obj.mechanical_system['Velocities'].items():
-#                velocity_name_json = str(velocity_name)
-#                velocity_value_json = str(velocity_value)
-#                velocities_json[velocity_name_json] = velocity_value_json
-#            mechanical_system['Velocities'] = velocities_json
-#
-#            accelerations_json = {}
-#            for acceleration_name, acceleration_value in obj.mechanical_system['Accelerations'].items():
-#                acceleration_name_json = str(acceleration_name)
-#                acceleration_value_json = str(acceleration_value)
-#                accelerations_json[acceleration_name_json] = acceleration_value_json
-#            mechanical_system['Accelerations'] = accelerations_json
             cartesian_coordinates_json = {}
             for cartesian_coordinate_name, cartesian_coordinate_value in obj.mechanical_system['Cartesian Coordinates'].items():
                 cartesian_coordinate_name_json = str(cartesian_coordinate_name)
@@ -502,6 +520,7 @@ class Equations_Of_Motion_Builder():
 
         sys.path.insert(0, self.simulation.mechanical_system['Path'])
         imported_module = importlib.import_module('equations_of_motion')
+        self.imported_module = importlib.reload(self.imported_module)
         return imported_module
 
 class Integrator_Builder():
@@ -661,16 +680,6 @@ class Integrator_Builder():
                 args = args + ', '
             file_write.write(args + '))\n\n')
 
-#            file_write.write('\ttime_evolution_list = []\n')
-#            file_write.write('\tindex = 0\n')
-#            file_write.write('\tfor time_evolution_step in time_evolution:\n')
-#            file_write.write('\t\ttime_evolution_step_list = time_evolution_step.tolist()\n')
-#            file_write.write('\t\ttime_evolution_step_list.insert(0, sampled_times[index])\n')
-#            file_write.write('\t\ttime_evolution_list.append(time_evolution_step_list)\n')
-#            file_write.write('\t\tindex = index + 1\n\n')
-
-##            file_write.write('\toutput = {\'time_evolution\': time_evolution_list}\n')
-
             file_write.write('\toutput = {}\n')
             file_write.write('\toutput_step = {}\n')
             file_write.write('\tindex_step = 0\n')
@@ -684,28 +693,13 @@ class Integrator_Builder():
             file_write.write('\t\t\tindex_degree = index_degree + 2\n')
             file_write.write('\t\toutput[str(sampled_time)] = output_step.copy()\n')
             file_write.write('\t\tindex_step = index_step + 1\n')
-
-            '''
-	output = {}
-	output_step = {}
-	index_step = 0
-	for sampled_time in sampled_times:
-		index_degree = 0
-		for degree_of_freedom in simulation.mechanical_system['Degrees of Freedom']:
-			step_dynamic_variable_name = str(degree_of_freedom)
-			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]
-			step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
-			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]
-			index_degree = index_degree + 2
-		output[str(sampled_time)] = output_step.copy()
-		index_step = index_step + 1
-            '''
-
             file_write.write('\n')
             file_write.write('\treturn output')
 
         sys.path.insert(0, self.simulation.mechanical_system['Path'])
-        imported_module = importlib.import_module('integrator')
-        return imported_module
+        self.imported_module = importlib.import_module('integrator')
+        self.imported_module = importlib.reload(self.imported_module)
+        
+        return self.imported_module
 
 
