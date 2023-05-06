@@ -4,10 +4,12 @@
     "Path": "C:\\Users\\E1243377\\Python\\DynamicalSystems\\Mechanical_Systems_Library\\Double_Pendulum\\",
     "Dimensions": 2,
     "Particles": 2,
+    "Masses": {
+      "m1": 2.0,
+      "m2": 1.0
+    },
     "Parameters": {
       "g": 9.81,
-      "m1": 2.0,
-      "m2": 1.0,
       "L1": 2.0,
       "L2": 1.0
     },
@@ -37,7 +39,7 @@
       "w_theta2_drive": 0.0,
       "phi_theta2_drive": 0.0
     },
-    "Notes": "jhg"
+    "Notes": ";lkhg;lkh"
   },
   "Initial Conditions": {
     "theta1(0)": 1.57,
@@ -48,8 +50,9 @@
   "Integration Parameters": {
     "t_initial": 0.0,
     "t_final": 1.0,
-    "iterations": 11
+    "iterations": 12
   },
   "Equations of Motion": {},
-  "Output": {}
+  "Output": {},
+  "Momenta": {}
 }

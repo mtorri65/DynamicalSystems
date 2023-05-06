@@ -74,6 +74,7 @@ class SystemCharacteristicsController:
                         'dimensions' : simulation.mechanical_system['Dimensions'],
                         'particles' : simulation.mechanical_system['Particles'],
                         'degrees_of_freedom' : simulation.mechanical_system['Degrees of Freedom'],
+                        'masses' : simulation.mechanical_system['Masses'],
                         'parameters' : simulation.mechanical_system['Parameters'],
                         'cartesian_coordinates' : simulation.mechanical_system['Cartesian Coordinates'],
                         'potential_energy' : simulation.mechanical_system['Potential Energy'],
@@ -109,6 +110,14 @@ class SystemCharacteristicsController:
         mechanical_system['Path'] = self.model.system.mechanical_systems_library_path + mechanical_system['Name'] + '\\'
         mechanical_system['Dimensions'] = int(self.frame.number_dimensions_input.get().rstrip('\n'))
         mechanical_system['Particles'] = int(self.frame.number_particles_input.get().rstrip('\n'))
+
+        masses_list = self.frame.masses_input.get('1.0', 'end-1c').rstrip('\n').split('\n')
+        masses = {}
+        for index in range(len(masses_list)):
+            mass_name = masses_list[index].partition('=')[0].strip(' ')
+            mass = float(masses_list[index].partition('=')[2])
+            masses[mass_name] = mass
+        mechanical_system['Masses'] = masses
 
         parameters_list = self.frame.parameters_input.get('1.0', 'end-1c').rstrip('\n').split('\n')
         parameters = {}
@@ -206,11 +215,14 @@ class SystemCharacteristicsController:
             if equations_of_motion_are_different:
                 equations_of_motion_builder = Equations_Of_Motion_Builder(self.model.simulation)
                 equations_of_motion_module = equations_of_motion_builder.build_equations_of_motion_module()
-                self.model.simulation.equations_of_motion = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
+                self.model.simulation.equations_of_motion, self.model.simulation.momenta = equations_of_motion_module.derive_equations_of_motion(self.model.simulation)
             else:
                 self.model.simulation.equations_of_motion = self.model.simulation.get_equations_of_motion_from_previous_simulation(simulation_json_files_folder)
                 self._sympyfy_equations_of_motion()
+                self.model.simulation.momenta = self.model.simulation.get_momenta_from_previous_simulation(simulation_json_files_folder)
+                self._sympyfy_momenta()
             self.model.simulation.serialize_equations_of_motion()
+            self.model.simulation.serialize_momenta()
 
             if initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist:
                 integrator_builder = Integrator_Builder(self.model.simulation)
@@ -223,6 +235,13 @@ class SystemCharacteristicsController:
         self.view.switch('output', 'output')
 
     def _sympyfy_mechanical_system(self):
+        masses = self.model.simulation.mechanical_system['Masses']
+        new_masses = {}
+        for mass_name, mass_value in masses.items():
+            new_mass_name = sympy.symbols(mass_name)
+            new_masses[new_mass_name] = mass_value
+        self.model.simulation.mechanical_system['Masses'] = new_masses
+
         parameters = self.model.simulation.mechanical_system['Parameters']
         new_parameters = {}
         for parameter_name, parameter_value in parameters.items():
@@ -301,4 +320,11 @@ class SystemCharacteristicsController:
             new_equations_of_motion[new_equation_of_motion_name] = parse_expr(equation_of_motion_value)
         self.model.simulation.equations_of_motion = new_equations_of_motion
 
+    def _sympyfy_momenta(self):
+        momenta = self.model.simulation.momenta
+        new_momenta = {}
+        for momentum_name, momentum_value in momenta.items():
+            new_momentum_name = sympy.sympify(momentum_name)
+            new_momenta[new_momentum_name] = parse_expr(momentum_value)
+        self.model.simulation.momenta = new_momenta
 

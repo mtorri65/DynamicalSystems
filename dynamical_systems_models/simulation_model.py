@@ -13,12 +13,13 @@ from .base_model import ObservableModel
 from . import models_constants as mc
 
 class Simulation(ObservableModel):
-    def __init__(self, mechanical_system = {}, initial_conditions = {}, integration_parameters = {}, equations_of_motion = {}, output = {}):
+    def __init__(self, mechanical_system = {}, initial_conditions = {}, integration_parameters = {}, equations_of_motion = {}, momenta = {}, output = {}):
         super().__init__()
         self.mechanical_system = mechanical_system
         self.initial_conditions = initial_conditions
         self.integration_parameters = integration_parameters
         self.equations_of_motion = equations_of_motion
+        self.momenta = momenta
         self.output = output
 
     @property
@@ -50,6 +51,13 @@ class Simulation(ObservableModel):
         self._equations_of_motion = new_equations_of_motion
 
     @property
+    def momenta(self):
+        return self._momenta
+    @momenta.setter
+    def momenta(self, new_momenta):
+        self._momenta = new_momenta
+
+    @property
     def output(self):
         return self._output
     @output.setter
@@ -70,6 +78,13 @@ class Simulation(ObservableModel):
             equations_of_motion = recent_simulation_file['Equations of Motion']
         return equations_of_motion
     
+    def get_momenta_from_previous_simulation(self, simulation_file_folder):
+        recent_simulation_file = self.get_recent_simulation_file(simulation_file_folder, 'second_most_recent')
+        momenta = {}
+        if recent_simulation_file['Momenta']:
+            momenta = recent_simulation_file['Momenta']
+        return momenta
+
     def get_output_from_previous_simulation(self, simulation_file_folder):
         most_recent_simulation_file = self.get_recent_simulation_file(simulation_file_folder, 'second_most_recent')
         if most_recent_simulation_file['Output']:
@@ -80,12 +95,16 @@ class Simulation(ObservableModel):
         initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = True
         equations_of_motion_are_different = True
         recent_json_string = self.get_recent_simulation_file(simulation_json_files_folder, position_in_sorted_list)
-        if (recent_json_string['Mechanical System'] == self.mechanical_system) and recent_json_string['Equations of Motion']:
-            equations_of_motion_are_different = False
-        if (recent_json_string['Initial Conditions'] == self.initial_conditions) and (recent_json_string['Integration Parameters'] == self.integration_parameters) and recent_json_string['Output']:
-#                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
-            print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
-            initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = False
+        if recent_json_string != '':
+            if (recent_json_string['Mechanical System'] == self.mechanical_system) and recent_json_string['Equations of Motion']:
+                equations_of_motion_are_different = False
+            if (recent_json_string['Initial Conditions'] == self.initial_conditions) and (recent_json_string['Integration Parameters'] == self.integration_parameters) and recent_json_string['Output']:
+    #                   messagebox.showwarning('Warning', 'The parameter values specified are identical to those of the last saved file - no new file will be saved')
+                print('Warning', 'The parameter values specified are identical to those of the last saved simulation - no new file will be saved')
+                initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = False
+        else:
+                initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist = True
+
         return equations_of_motion_are_different, initial_conditions_are_different_or_integration_parameters_are_different_or_output_previous_simulation_does_not_exist            
     
     def get_recent_simulation_file(self, simulation_json_files_folder, position_in_sorted_list):
@@ -99,11 +118,9 @@ class Simulation(ObservableModel):
         else:
             raise Exception("position_in_sorted list must be either most_recent or second_most_recent")
 
+        recent_json_string = ''
         if simulation_json_files_list:
-#            most_recent_file = max(simulation_json_files_list, key=os.path.getmtime)
             sorted_files = sorted(simulation_json_files_list, key=os.path.getmtime)
-#            with open(most_recent_file, 'r') as f:
-#                most_recent_json_string = json.load(f)
             with open(sorted_files[index], 'r') as f:
                 recent_json_string = json.load(f)
         
@@ -142,6 +159,14 @@ class Simulation(ObservableModel):
             new_equations_of_motion[new_equations_of_motion_key] = new_equations_of_motion_value
         self._save_simulation_to_json(new_equations_of_motion, 'Equations of Motion')
 
+    def serialize_momenta(self):
+        new_momenta = {}
+        for momentum_name, momentum_equation in self.momenta.items():
+            new_momentum_key = str(momentum_name)
+            new_momentum_equation = str(momentum_equation)
+            new_momenta[new_momentum_key] = new_momentum_equation
+        self._save_simulation_to_json(new_momenta, 'Momenta')
+
     def serialize_output(self):
         new_output = {}
         for output_key, output_value in self.output.items():
@@ -170,6 +195,13 @@ class Simulation_Encoder(JSONEncoder):
             mechanical_system['Path'] = obj.mechanical_system['Path']
             mechanical_system['Dimensions'] = obj.mechanical_system['Dimensions']
             mechanical_system['Particles'] = obj.mechanical_system['Particles']
+
+            masses_json = {}
+            for mass_name, mass_value in obj.mechanical_system['Masses'].items():
+                mass_name_json = str(mass_name)
+                mass_value_json = mass_value
+                masses_json[mass_name_json] = mass_value_json
+            mechanical_system['Masses'] = masses_json
 
             parameters_json = {}
             for parameter_name, parameter_value in obj.mechanical_system['Parameters'].items():
@@ -245,6 +277,13 @@ class Simulation_Encoder(JSONEncoder):
                 output_json[output_key_json] = output_value_json
             simulation_json['Output'] = output_json
 
+            momenta_json = {}
+            for momentum_key, momentum_value in obj.momenta.items():
+                momentum_key_json = momentum_key
+                momentum_value_json = momentum_value.tolist()
+                momenta_json[momentum_key_json] = momentum_value_json
+            simulation_json['Momenta'] = momenta_json
+
             return simulation_json
 
         return super().default(simulation_json)
@@ -268,17 +307,23 @@ class System(object):
         return simulations
     
     def get_mechanical_system_diagram(self):
-        no_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_library_path + 'no_diagram_provided.png'))
+        no_diagram = self._resize_image(self.mechanical_systems_library_path + 'no_diagram_provided.png')
         if self.selected_system != '':
             self.set_mechanical_system_diagram_path()
             if os.path.exists(self.mechanical_systems_diagram_path):
-                mechanical_system_diagram = ImageTk.PhotoImage(Image.open(self.mechanical_systems_diagram_path))
+                mechanical_system_diagram = self._resize_image(self.mechanical_systems_diagram_path)
                 return mechanical_system_diagram
             else:
                 return no_diagram
         else:
             return no_diagram
-        
+
+    def _resize_image(self, diagram_path):
+        image = Image.open(diagram_path)
+        image.thumbnail((300, 300))        
+        resized_image = ImageTk.PhotoImage(image)
+        return resized_image
+
     def set_mechanical_system_path(self):
         if self.selected_system == '':
             self.mechanical_system_path = self.mechanical_systems_library_path
@@ -348,6 +393,10 @@ class Equations_Of_Motion_Builder():
             file_write.write('\t\t\tsecond_derivatives_simplified[acceleration] = simulation.equations_of_motion[str(acceleration)]\n')
             file_write.write('\telse:\n')
             
+            file_write.write('\t\tmasses_names = list(simulation.mechanical_system[\'Masses\'])\n')
+            masses_names = list(self.simulation.mechanical_system['Masses'])
+            for index in range(len(masses_names)):
+                file_write.write('\t\t' + str(masses_names[index]) + ' = masses_names[' + str(index) + ']\n')
             file_write.write('\t\tparameters_names = list(simulation.mechanical_system[\'Parameters\'])\n')
             parameters_names = list(self.simulation.mechanical_system['Parameters'])
             for index in range(len(parameters_names)):
@@ -449,6 +498,7 @@ class Equations_Of_Motion_Builder():
 
             file_write.write('# calculate equations_of_motion\n')
             file_write.write('\t\tLE = []\n')
+            file_write.write('\t\tmomenta = {}\n')            		
             file_write.write('\t\taccelerations = list(simulation.mechanical_system[\'Accelerations\'].values())\n')
             file_write.write('\t\tvelocities = list(simulation.mechanical_system[\'Velocities\'].values())\n')
             file_write.write('\t\tfor h in range(len(simulation.mechanical_system[\'Degrees of Freedom\'])):\n')
@@ -456,6 +506,9 @@ class Equations_Of_Motion_Builder():
             file_write.write('\t\t\tterm2 = 0\n')
             file_write.write('\t\t\tterm3 = 0\n')
             file_write.write('\t\t\tterm4 = 0\n')
+            file_write.write('\t\t\tmomentum_h = 0\n')
+            file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Velocities\'])):\n')
+            file_write.write('\t\t\t\tmomentum_h = momentum_h + 1/2 * (K[h,p] + K[p,h])*velocities[p]\n')
             file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Accelerations\'])):\n')
             file_write.write('\t\t\t\tterm1 = term1 + (K[h,p] + K[p,h])*accelerations[p]\n')
             file_write.write('\t\t\tfor p in range(len(simulation.mechanical_system[\'Velocities\'])):\n')
@@ -467,6 +520,7 @@ class Equations_Of_Motion_Builder():
             file_write.write('\t\t\tfor r in range(simulation.mechanical_system[\'Particles\']):\n')
             file_write.write('\t\t\t\tterm4 = term4 + dVdq[r,h]\n')
             file_write.write('\t\t\tLagrange_equation = (.5*(term1 + term2 - term3) + term4).simplify()\n')
+            file_write.write('\t\t\tmomenta[\'p_\' + str(degrees_of_freedom[h]).partition(\'(\')[0]] = momentum_h\n')
             file_write.write('\t\t\tLE.append(Lagrange_equation)\n')
             file_write.write('\n')
 
@@ -516,12 +570,12 @@ class Equations_Of_Motion_Builder():
                 file_write.write('\t\tsecond_derivatives_simplified[sympy.Derivative(degrees_of_freedom[' + str(n) + '], (t, 2))] = second_derivatives[sympy.Derivative(degrees_of_freedom[' + str(n) + '], (t, 2))].simplify()\n')
             file_write.write('\n')    
 
-            file_write.write('\treturn second_derivatives_simplified')
+            file_write.write('\treturn second_derivatives_simplified, momenta')
 
         sys.path.insert(0, self.simulation.mechanical_system['Path'])
-        imported_module = importlib.import_module('equations_of_motion')
+        self.imported_module = importlib.import_module('equations_of_motion')
         self.imported_module = importlib.reload(self.imported_module)
-        return imported_module
+        return self.imported_module
 
 class Integrator_Builder():
     def __init__(self, simulation):
@@ -535,6 +589,14 @@ class Integrator_Builder():
             file_write.write('\n')
             file_write.write('def integrate_equations_of_motion(simulation):\n')
             file_write.write('\tt = sympy.symbols(\'t\')')
+            file_write.write('\n')
+
+            file_write.write('\tmasses_names = list(simulation.mechanical_system[\'Masses\'])\n')
+            masses_names = list(self.simulation.mechanical_system['Masses'])
+            index = 0
+            for mass_name in masses_names:
+                file_write.write('\t' + str(mass_name) + ' = masses_names[' + str(index) + ']\n')
+                index = index + 1
             file_write.write('\n')
 
             file_write.write('\tparameters_names = list(simulation.mechanical_system[\'Parameters\'])\n')
@@ -576,6 +638,7 @@ class Integrator_Builder():
                 file_write.write('\t' + str(velocity_name) + '_velocity = velocities[' + str(index) + ']\n')
                 index = index + 1
             file_write.write('\n')
+
             file_write.write('\taccelerations = list(simulation.mechanical_system[\'Accelerations\'].values())\n')
             accelerations_names = list(self.simulation.mechanical_system['Accelerations'])
             index = 0
@@ -584,10 +647,23 @@ class Integrator_Builder():
                 index = index + 1
             file_write.write('\n')
 
+            file_write.write('\tmomenta = list(simulation.momenta.values())\n')
+            momenta_names = list(self.simulation.momenta)
+            for index, momentum_name in enumerate(momenta_names):
+                file_write.write('\t' + str(momentum_name) + '_momentum = momenta[' + str(index) + ']\n')
+            file_write.write('\n')
+
+# 	momenta = list(simulation.momenta.values())
+#	theta1_momentum = momenta[0]
+#	theta2_momentum = momenta[1]
+            
+
             degrees_of_freedom_names = list(self.simulation.mechanical_system['Degrees of Freedom'])
             file_write.write('# convert system of second order ODEs into a system of first order ODEs\n')
             for index in range(len(degrees_of_freedom_names)):
                 args = 't, '
+                for index1 in range(len(masses_names)):
+                    args = args +  str(masses_names[index1]) + ', '
                 for index1 in range(len(parameters_names)):
                     args = args +  str(parameters_names[index1]) + ', '
                 for index1 in range(len(friction_coefficients_names)):
@@ -604,8 +680,38 @@ class Integrator_Builder():
                 file_write.write('\td' + str(degrees_of_freedom_names[index]) + 'dt_f = sympy.lambdify((' + str(degrees_of_freedom_names[index]) + '_velocity), ' + str(degrees_of_freedom_names[index]) + '_velocity)\n')
             file_write.write('\n')
 
+            file_write.write('\tmomenta_functions = []\n')
+            file_write.write('\tfor momentum_index in range(len(degrees_of_freedom)):\n')
+            for index in range(len(degrees_of_freedom_names)):
+                args = 't, '
+                for index1 in range(len(masses_names)):
+                    args = args +  str(masses_names[index1]) + ', '
+                for index1 in range(len(parameters_names)):
+                    args = args +  str(parameters_names[index1]) + ', '
+                for index1 in range(len(friction_coefficients_names)):
+                    args = args +  str(friction_coefficients_names[index1]) + ', '
+                for index1 in range(len(driving_force_coefficients_names)):
+                    args = args +  str(driving_force_coefficients_names[index1]) + ', '
+                for index1 in range(len(degrees_of_freedom_names)):
+                    args = args +  str(degrees_of_freedom_names[index1]) + ', '
+                for index1 in range(len(velocities_names)):
+                    args = args +  str(velocities_names[index1]) + '_velocity'
+                    if index1 < len(velocities_names) - 1:
+                        args = args + ', '
+            file_write.write('\t\tmomentum = sympy.lambdify((' + args + '), momenta[momentum_index])\n')
+            file_write.write('\t\tmomenta_functions.append(momentum)\n')
+            file_write.write('\n')
+
+# 	momenta_functions = []
+#	for momentum_index in len(degrees_of_freedom):
+#		momentum = sympy.lambdify((t, m1, m2, g, L1, L2, theta1_friction, theta2_friction, A_theta1_drive, w_theta1_drive, phi_theta1_drive, A_theta2_drive, w_theta2_drive, phi_theta2_drive, theta1, theta2, theta1_velocity, theta2_velocity), simulation.momenta[momentum_index])
+#		momenta_functions.append(momentum)
+            
+
             file_write.write('# define solution vector\n')
             args = 'S, t, '
+            for index in range(len(masses_names)):
+                args = args +  str(masses_names[index]) + ', '
             for index in range(len(parameters_names)):
                 args = args +  str(parameters_names[index]) + ', '
             for index in range(len(friction_coefficients_names)):
@@ -626,6 +732,8 @@ class Integrator_Builder():
             for index in range(len(degrees_of_freedom_names)):
                 file_write.write('\t\t\td' + str(degrees_of_freedom_names[index]) + 'dt_f(z' + str(index + 1) + '),\n')
                 args = 't, '
+                for index1 in range(len(masses_names)):
+                    args = args + str(masses_names[index1]) + ', ' 
                 for index1 in range(len(parameters_names)):
                     args = args + str(parameters_names[index1]) + ', ' 
                 for index1 in range(len(friction_coefficients_names)):
@@ -648,6 +756,9 @@ class Integrator_Builder():
             iterations_value = self.simulation.integration_parameters['iterations'] 
 
             file_write.write('\tsampled_times = numpy.linspace(' + str(t_initial_value) + ', ' + str(t_final_value) + ', ' + str(iterations_value) + ')\n')
+            masses = list(self.simulation.mechanical_system['Masses'].values())
+            for index in range(len(masses_names)):
+                file_write.write('\t' + str(masses_names[index]) + ' = ' + str(masses[index]) + '\n')
             parameters = list(self.simulation.mechanical_system['Parameters'].values())
             for index in range(len(parameters_names)):
                 file_write.write('\t' + str(parameters_names[index]) + ' = ' + str(parameters[index]) + '\n')
@@ -658,7 +769,7 @@ class Integrator_Builder():
             for index in range(len(driving_force_coefficients_names)):
                 file_write.write('\t' + str(driving_force_coefficients_names[index]) + ' = ' + str(driving_force_coefficients[index]) + '\n')
             file_write.write('\n')
-
+          
             file_write.write('\ttime_evolution = odeint(dSdt, y0=[')
             args = ''
             initial_conditions = list(self.simulation.initial_conditions.values())
@@ -669,6 +780,9 @@ class Integrator_Builder():
             file_write.write(args + '], t = sampled_times, args=(')
 
             args = ''
+            for index in range(len(masses_names)):
+                args = args +  str(masses_names[index])
+                args = args + ', '
             for index in range(len(parameters_names)):
                 args = args +  str(parameters_names[index])
                 args = args + ', '
@@ -678,7 +792,32 @@ class Integrator_Builder():
             for index in range(len(driving_force_coefficients_names)):
                 args = args +  str(driving_force_coefficients_names[index])
                 args = args + ', '
-            file_write.write(args + '))\n\n')
+            file_write.write(args + '))\n')
+            file_write.write('\n')
+
+            file_write.write('\tmomenta_values = []\n')
+            file_write.write('\tfor index_step, sampled_time in enumerate(sampled_times):\n')
+            file_write.write('\t\tmomenta_values.append([None] * len(degrees_of_freedom))\n')
+            file_write.write('\t\tfor index_degree, degree_of_freedom in enumerate(degrees_of_freedom):\n')
+            args_parameters = 'sampled_time, '
+            for index in range(len(masses_names)):
+                args_parameters = args_parameters + str(masses_names[index]) + ', '
+            for index in range(len(parameters_names)):
+                args_parameters = args_parameters + str(parameters_names[index]) + ', '
+            for index in range(len(friction_coefficients_names)):
+                args_parameters = args_parameters + str(friction_coefficients_names[index]) + ', '
+            for index in range(len(driving_force_coefficients_names)):
+                args_parameters = args_parameters + str(driving_force_coefficients_names[index]) + ', '
+            args_degree_of_freedom = ''
+            for index in range(len(degrees_of_freedom_names)):
+                args_degree_of_freedom = args_degree_of_freedom + 'time_evolution[index_step][' + str(2*index) + '], '
+            for index in range(len(degrees_of_freedom_names)):
+                args_degree_of_freedom = args_degree_of_freedom + 'time_evolution[index_step][' + str(2*index + 1) + '] '
+                if index < len(degrees_of_freedom_names) - 1:
+                    args_degree_of_freedom = args_degree_of_freedom + ', '
+
+            file_write.write('\t\t\tmomenta_values[index_step][index_degree] = momenta_functions[index_degree](' + args_parameters + args_degree_of_freedom + ')\n')
+            file_write.write('\n')
 
             file_write.write('\toutput = {}\n')
             file_write.write('\toutput_step = {}\n')
@@ -690,6 +829,10 @@ class Integrator_Builder():
             file_write.write('\t\t\toutput_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]\n')
             file_write.write('\t\t\tstep_dynamic_variable_name = \'v_\' + str(degree_of_freedom)\n')
             file_write.write('\t\t\toutput_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]\n')
+
+            file_write.write('\t\t\tstep_dynamic_variable_name = \'p_\' + str(degree_of_freedom)\n')
+            file_write.write('\t\t\toutput_step[step_dynamic_variable_name] = momenta_values[index_step][index_degree // 2]\n')
+
             file_write.write('\t\t\tindex_degree = index_degree + 2\n')
             file_write.write('\t\toutput[str(sampled_time)] = output_step.copy()\n')
             file_write.write('\t\tindex_step = index_step + 1\n')

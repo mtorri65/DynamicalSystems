@@ -31,6 +31,7 @@ class ExistingSimulationsController:
             simulation.initial_conditions = simulation_json['Initial Conditions']
             simulation.integration_parameters = simulation_json['Integration Parameters']
             simulation.equations_of_motion = simulation_json['Equations of Motion']
+            simulation.momenta = simulation_json['Momenta']
             simulation.output = simulation_json['Output']
         self.view.switch('system_characteristics', 'system description')
 

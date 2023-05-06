@@ -28,5 +28,4 @@ class NewSimulationController:
 
     def clear_system_diagram(self):
         p = self.model.system.mechanical_systems_diagram_path.rsplit("\\", 1)[0]
-#        self.model.system.test_diagram(p)
         self.model.system.set_mechanical_system_diagram_path(p)

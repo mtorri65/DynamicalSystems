@@ -29,12 +29,10 @@ class OutputController:
         if self.x_axis_degree_of_freedom != 't':
             self.y_axis_variables.remove(self.x_axis_degree_of_freedom)        
         self.frame.y_axis_combo.config(values=self.y_axis_variables, state='normal')
-        print("I am in _select_x_degree_of_freedom")
         self.plot()
 
     def _select_y_degree_of_freedom(self, event):
         self.y_axis_degree_of_freedom = event.widget.get()
-        print("I am in _select_y_degree_of_freedom")
         self.plot()
 
 #    def _switch_start(self) -> None:
@@ -71,9 +69,9 @@ class OutputController:
 
         self.y_axis_variables = []
         for x_axis_variable in self.degrees_of_freedom:
-#            self.y_axis_variables.append('p_' + str(x_axis_variable))
             self.y_axis_variables.append(str(x_axis_variable))
             self.y_axis_variables.append('v_' + str(x_axis_variable))
+            self.y_axis_variables.append('p_' + str(x_axis_variable))
         self.y_axis_variables_all = self.y_axis_variables.copy()
 
         self.frame.x_axis_combo.config(values=self.x_axis_variables_t)
