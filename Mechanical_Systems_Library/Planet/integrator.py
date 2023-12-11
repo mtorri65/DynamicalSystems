@@ -4,10 +4,12 @@ from scipy.integrate import odeint
 
 def integrate_equations_of_motion(simulation):
 	t = sympy.symbols('t')
+	masses_names = list(simulation.mechanical_system['Masses'])
+	m1 = masses_names[0]
+
 	parameters_names = list(simulation.mechanical_system['Parameters'])
 	G = parameters_names[0]
 	M = parameters_names[1]
-	m1 = parameters_names[2]
 
 	degrees_of_freedom = list(simulation.mechanical_system['Degrees of Freedom'].values())
 	r = degrees_of_freedom[0]
@@ -33,27 +35,36 @@ def integrate_equations_of_motion(simulation):
 	r_acceleration = accelerations[0]
 	theta_acceleration = accelerations[1]
 
+	momenta = list(simulation.momenta.values())
+	p_r_momentum = momenta[0]
+	p_theta_momentum = momenta[1]
+
 # convert system of second order ODEs into a system of first order ODEs
-	dz1dt_f = sympy.lambdify((t, G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, r_velocity, theta_velocity), simulation.equations_of_motion[r_acceleration])
+	dz1dt_f = sympy.lambdify((t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, r_velocity, theta_velocity), simulation.equations_of_motion[r_acceleration])
 	drdt_f = sympy.lambdify((r_velocity), r_velocity)
-	dz2dt_f = sympy.lambdify((t, G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, r_velocity, theta_velocity), simulation.equations_of_motion[theta_acceleration])
+	dz2dt_f = sympy.lambdify((t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, r_velocity, theta_velocity), simulation.equations_of_motion[theta_acceleration])
 	dthetadt_f = sympy.lambdify((theta_velocity), theta_velocity)
 
+	momenta_functions = []
+	for momentum_index in range(len(degrees_of_freedom)):
+		momentum = sympy.lambdify((t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, r_velocity, theta_velocity), momenta[momentum_index])
+		momenta_functions.append(momentum)
+
 # define solution vector
-	def dSdt(S, t, G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive):
+	def dSdt(S, t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive):
 		r, z1, theta, z2 = S
 		return [
 			drdt_f(z1),
-			dz1dt_f(t, G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, z1, z2),
+			dz1dt_f(t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, z1, z2),
 			dthetadt_f(z2),
-			dz2dt_f(t, G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, z1, z2),
+			dz2dt_f(t, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, r, theta, z1, z2),
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 12.56, 205)
+	sampled_times = numpy.linspace(0.0, 12.56, 200)
+	m1 = 3e-05
 	G = 1.0
 	M = 1.0
-	m1 = 3e-06
 	r_friction = 0.0
 	theta_friction = 0.0
 	A_r_drive = 0.0
@@ -63,7 +74,13 @@ def integrate_equations_of_motion(simulation):
 	w_theta_drive = 0.0
 	phi_theta_drive = 0.0
 
-	time_evolution = odeint(dSdt, y0=[1.7, 0.0, 0.0, 0.353], t = sampled_times, args=(G, M, m1, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, ))
+	time_evolution = odeint(dSdt, y0=[1.7, 0.0, 0.0, 0.353], t = sampled_times, args=(m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, ))
+
+	momenta_values = []
+	for index_step, sampled_time in enumerate(sampled_times):
+		momenta_values.append([None] * len(degrees_of_freedom))
+		for index_degree, degree_of_freedom in enumerate(degrees_of_freedom):
+			momenta_values[index_step][index_degree] = momenta_functions[index_degree](sampled_time, m1, G, M, r_friction, theta_friction, A_r_drive, w_r_drive, phi_r_drive, A_theta_drive, w_theta_drive, phi_theta_drive, time_evolution[index_step][0], time_evolution[index_step][2], time_evolution[index_step][1] , time_evolution[index_step][3] )
 
 	output = {}
 	output_step = {}
@@ -75,6 +92,8 @@ def integrate_equations_of_motion(simulation):
 			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree]
 			step_dynamic_variable_name = 'v_' + str(degree_of_freedom)
 			output_step[step_dynamic_variable_name] = time_evolution[index_step][index_degree + 1]
+			step_dynamic_variable_name = 'p_' + str(degree_of_freedom)
+			output_step[step_dynamic_variable_name] = momenta_values[index_step][index_degree // 2]
 			index_degree = index_degree + 2
 		output[str(sampled_time)] = output_step.copy()
 		index_step = index_step + 1

@@ -63,7 +63,7 @@ def integrate_equations_of_motion(simulation):
 		]
 
 # integrate equations of motion
-	sampled_times = numpy.linspace(0.0, 10.0, 1001)
+	sampled_times = numpy.linspace(0.0, 1.0, 12)
 	m1 = 2.0
 	m2 = 1.0
 	g = 9.81
@@ -78,7 +78,7 @@ def integrate_equations_of_motion(simulation):
 	w_theta2_drive = 0.0
 	phi_theta2_drive = 0.0
 
-	time_evolution = odeint(dSdt, y0=[0.1, 0.0, 0.0, 0.0], t = sampled_times, args=(m1, m2, g, L1, L2, theta1_friction, theta2_friction, A_theta1_drive, w_theta1_drive, phi_theta1_drive, A_theta2_drive, w_theta2_drive, phi_theta2_drive, ))
+	time_evolution = odeint(dSdt, y0=[1.57, 0.0, 0.0, 1.0], t = sampled_times, args=(m1, m2, g, L1, L2, theta1_friction, theta2_friction, A_theta1_drive, w_theta1_drive, phi_theta1_drive, A_theta2_drive, w_theta2_drive, phi_theta2_drive, ))
 
 	momenta_values = []
 	for index_step, sampled_time in enumerate(sampled_times):

@@ -3,23 +3,20 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 
 
-def eigenvalues(a, b, c, d):
-    trace = a + d
-    determinant = a*d - b*c
-    discriminant = trace**2 - 4*determinant
-
+def eigenvalues(x, y, mu, delta):
+    discriminant = delta**2 - 4*mu
     Re_lambda1 = 0
     Re_lambda2 = 0
     Im_lambda1 = 0
     Im_lambda2 = 0
     if discriminant >= 0:
-        Re_lambda1 = trace/2 - np.sqrt(discriminant)/2
-        Re_lambda2 = trace/2 + np.sqrt(discriminant)/2
+        Re_lambda1 = -delta/2 - np.sqrt(discriminant)/2
+        Re_lambda2 = -delta/2 + np.sqrt(discriminant)/2
         Im_lambda1 = 0
         Im_lambda2 = 0
     else:
-        Re_lambda1 = trace/2 
-        Re_lambda2 = trace/2 
+        Re_lambda1 = -delta/2 
+        Re_lambda2 = -delta/2 
         Im_lambda1 = -np.sqrt(-discriminant)/2
         Im_lambda2 = np.sqrt(-discriminant)/2
     return Re_lambda1, Re_lambda2, Im_lambda1, Im_lambda2
@@ -75,13 +72,8 @@ class Exercise1(genericExercise):
         self.parameters.append(parametersCase)
 
     def calculatePhasePortrait(self, x, y, delta, mu):        
-#        return -7*x + 6*y, 2*x - 6*y
-        return -1*x, -2*y
-
-    def drawPhasePortrait(self, title):
-        super().drawPhasePortrait(self, title)
+        return y, -delta*y - mu*x
     
-    '''
     def drawPhasePortrait(self, title):
         self.configurePlot()
         self.parameterCases()
@@ -102,22 +94,6 @@ class Exercise1(genericExercise):
                 ax.text(textHorizontalPosition, self.textVerticalPosition, plotTitle, horizontalalignment='center',
                         fontsize=10, bbox=dict(facecolor='white', edgecolor='none'))
         plt.show()
-    '''
-    def drawPhasePortraitNoParameters(self, title):
-        self.configurePlot()
-        dX, dY = self.calculatePhasePortrait(self.X, self.Y, 0, 0)
-        speed = np.sqrt(dX**2 + dY**2)
-#        lw = 5*speed / speed.max()
-        lw = 1
-#        seek_points = np.array([[14],[0.0250]])
-#        plt.streamplot(self.X, self.Y, dX, dY, color='r', linewidth=lw, density=5.0, start_points = seek_points.T)
-        plt.streamplot(self.X, self.Y, dX, dY, color='r', linewidth=lw, density=2.0)
-
-#        self.axes.plot(seek_points[0], seek_points[1], 'bo')
-#        self.axes.set(xlim =(0, 55), ylim =(0, 30))
-        self.axes.set(xlim =(-1, 1), ylim =(-1, 1))
-        plt.show()
-
 
 class Exercise2(genericExercise):
     def __init__(self, numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition) -> None:
@@ -410,8 +386,7 @@ class Example11(genericExercise):
         self.parameters.append(parametersCase)
 
     def calculatePhasePortrait(self, x, y, delta, mu):
-#        return 7*x - 6*y, -7*y + (x*y - y**2)
-        return -7*x + 6*y, 2*x - 6*y
+        return 3*x - 6*y, -7*y + (x*y - y**2)
     
     def drawPhasePortrait(self, title):
         super().drawPhasePortrait(self, title)
@@ -420,26 +395,25 @@ class Example11(genericExercise):
         self.configurePlot()
         dX, dY = self.calculatePhasePortrait(self.X, self.Y, 0, 0)
         speed = np.sqrt(dX**2 + dY**2)
-        lw = 25*speed / speed.max()
-#        seek_points = np.array([[14],[0.0250]])
-#        plt.streamplot(self.X, self.Y, dX, dY, color='r', linewidth=lw, density=5.0, start_points = seek_points.T)
-        plt.streamplot(self.X, self.Y, dX, dY, color='r', linewidth=lw, density=10.0)
+#        lw = 5*speed / speed.max()
+        lw = 1
+        seek_points = np.array([[14],[0.0250]])
+        plt.streamplot(self.X, self.Y, dX, dY, color='r', linewidth=lw, density=5.0, start_points = seek_points.T)
 
-#        self.axes.plot(seek_points[0], seek_points[1], 'bo')
-#        self.axes.set(xlim =(0, 55), ylim =(0, 30))
-        self.axes.set(xlim =(-1, 1), ylim =(-1, 1))
+        self.axes.plot(seek_points[0], seek_points[1], 'bo')
+        self.axes.set(xlim =(0, 55), ylim =(0, 30))
         plt.show()
 
-numPlotsPerColumn = 1
-numPlotsPerRow = 1
-figHorizontalSize = 9
+'''
+numPlotsPerColumn = 2
+numPlotsPerRow = 3
+figHorizontalSize = 18
 figVerticalSize = 9
 plotSizeLength = 1
 textVerticalPosition = 0.83 * plotSizeLength
-exercise1 = Exercise1(numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition)
-exercise1.drawPhasePortraitNoParameters('Problem 1.6.1a - Non Degenerate Cases')
+#exercise1 = Exercise1(numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition)
+#exercise1.drawPhasePortrait('Problem 1.6.1a - Non Degenerate Cases')
 
-'''
 numPlotsPerColumn = 2
 numPlotsPerRow = 4
 figHorizontalSize = 18
@@ -493,19 +467,13 @@ plotSizeLength = 1.5
 textVerticalPosition = 0.83 * plotSizeLength
 example8 = Example8(numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition)
 example8.drawPhasePortraitNoParameters('Problem 1.6.1f')
-
-
-Re_lambda1, Re_lambda2, Im_lambda1, Im_lambda2 = eigenvalues(-7, 6, 2, -6)
-print('eigenvalue 1 = ' + str(Re_lambda1) + '+ i' + str(Im_lambda1))
-print('eigenvalue 2 = ' + str(Re_lambda2) + '+ i' + str(Im_lambda2))
-
+'''
 
 numPlotsPerColumn = 1
 numPlotsPerRow = 1
-figHorizontalSize = 9
+figHorizontalSize = 18
 figVerticalSize = 9
-plotSizeLength = 5
+plotSizeLength = 50
 textVerticalPosition = 0.83 * plotSizeLength
-example = Exercise1(numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition)
+example = Example11(numPlotsPerColumn, numPlotsPerRow, figHorizontalSize, figVerticalSize, plotSizeLength, textVerticalPosition)
 example.drawPhasePortraitNoParameters('Problem 1.6.1f')
-'''

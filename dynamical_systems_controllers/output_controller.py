@@ -87,7 +87,6 @@ class OutputController:
         if self.x_axis_degree_of_freedom not in self.x_axis_variables_t:
             self.x_axis_degree_of_freedom = 't'
         if self.y_axis_degree_of_freedom not in self.y_axis_variables:
-#            self.y_axis_degree_of_freedom = 'p_' + self.degrees_of_freedom[0]
             self.y_axis_degree_of_freedom = self.degrees_of_freedom[0]
         
         self.model.simulation.get_simulation_data(self.model.system.selected_simulation, self.x_axis_degree_of_freedom, self.y_axis_degree_of_freedom)
@@ -99,8 +98,6 @@ class OutputController:
         width = self.frame.winfo_screenmmwidth()
         self.frame.fig = Figure(figsize=(height/96, width/96), dpi=100)
         self.frame.ax = self.frame.fig.add_subplot()
-
-#        if self.frame.canvas: self.frame.canvas.get_tk_widget().pack_forget()    
 
         self.frame.ax.plot(self.model.simulation.x , self.model.simulation.y, '-', color='green', lw = 0.7, label = 'test')
         self.frame.ax.set_xlabel(self.x_axis_degree_of_freedom)

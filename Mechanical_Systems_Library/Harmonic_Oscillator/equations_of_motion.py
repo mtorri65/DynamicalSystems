@@ -13,9 +13,10 @@ def derive_equations_of_motion(simulation):
 		for acceleration in simulation.mechanical_system['Accelerations'].values():
 			second_derivatives_simplified[acceleration] = simulation.equations_of_motion[str(acceleration)]
 	else:
+		masses_names = list(simulation.mechanical_system['Masses'])
+		m1 = masses_names[0]
 		parameters_names = list(simulation.mechanical_system['Parameters'])
 		k = parameters_names[0]
-		m1 = parameters_names[1]
 		degrees_of_freedom = list(simulation.mechanical_system['Degrees of Freedom'].values())
 		x1 = degrees_of_freedom[0]
 		friction_coefficients_names = list(simulation.mechanical_system['Friction Coefficients'])
@@ -74,6 +75,7 @@ def derive_equations_of_motion(simulation):
 
 # calculate equations_of_motion
 		LE = []
+		momenta = {}
 		accelerations = list(simulation.mechanical_system['Accelerations'].values())
 		velocities = list(simulation.mechanical_system['Velocities'].values())
 		for h in range(len(simulation.mechanical_system['Degrees of Freedom'])):
@@ -81,6 +83,9 @@ def derive_equations_of_motion(simulation):
 			term2 = 0
 			term3 = 0
 			term4 = 0
+			momentum_h = 0
+			for p in range(len(simulation.mechanical_system['Velocities'])):
+				momentum_h = momentum_h + 1/2 * (K[h,p] + K[p,h])*velocities[p]
 			for p in range(len(simulation.mechanical_system['Accelerations'])):
 				term1 = term1 + (K[h,p] + K[p,h])*accelerations[p]
 			for p in range(len(simulation.mechanical_system['Velocities'])):
@@ -92,6 +97,7 @@ def derive_equations_of_motion(simulation):
 			for r in range(simulation.mechanical_system['Particles']):
 				term4 = term4 + dVdq[r,h]
 			Lagrange_equation = (.5*(term1 + term2 - term3) + term4).simplify()
+			momenta['p_' + str(degrees_of_freedom[h]).partition('(')[0]] = momentum_h
 			LE.append(Lagrange_equation)
 
 		LE_expand = []
@@ -110,4 +116,4 @@ def derive_equations_of_motion(simulation):
 		second_derivatives = sympy.solve_linear_system_LU(Matx, [sympy.Derivative(degrees_of_freedom[0], (t, 2))])
 		second_derivatives_simplified[sympy.Derivative(degrees_of_freedom[0], (t, 2))] = second_derivatives[sympy.Derivative(degrees_of_freedom[0], (t, 2))].simplify()
 
-	return second_derivatives_simplified
+	return second_derivatives_simplified, momenta
